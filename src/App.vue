@@ -2,13 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
-import { ACTIONS, ASK_ACTION, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
+import { ACTIONS, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
 
-// Two calls about one frame. 1: the one thing to do here, out of a fixed list. 2: the decision: the five ways to
-// go plus that one thing, as equal options. The model does not have to pick the thing.
-//
-// A model has favourite options whatever the picture shows (the small one says "Stand here" nine times out of
-// ten). So each question is also asked once about a plain gray picture, and every answer is divided by that.
+// One frame, one decision: the five ways to go, or the one thing worth doing here. The model does not have to
+// pick the thing. How the thing is found depends on the model (models.ts), and so does the number of calls.
 const ICONS: Record<string, string> = {
   'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
@@ -46,14 +43,15 @@ function corrected(p: Probs, prior: Probs | undefined): Probs {
   const sum = Object.values(q).reduce((a, b) => a + b, 0) || 1
   return Object.fromEntries(Object.entries(q).map(([k, v]) => [k, v / sum]))
 }
-let gray = '' // the plain picture the preferences are measured on
-let priorPick: Probs | undefined // the model's answer to the first question about the gray picture
-const priorDecision = new Map<string, Probs>() // and to the second, per action, measured the first time it comes up
-const pickQuestion = (spec: ModelSpec) =>
-  spec.ask === 'action'
-    ? { instructions: ASK_ACTION, options: ACTIONS.map((a) => a.action) }
-    : { instructions: ASK_THING, options: ACTIONS.map((a) => a.thing) }
+let gray = '' // a plain picture: what the small model answers about it is its preference, not a decision
+const priorDecision = new Map<string, Probs>() // that preference, per action, measured the first time it comes up
+const THING_PRIOR: Probs = Object.fromEntries(ACTIONS.map((a) => [a.thing, a.prior]))
 const decisionQuestion = (action: string) => ({ instructions: ASK_DECISION, options: [...DIRECTIONS, action] })
+// only these options of an answer, summing to one again
+function among(p: Probs, keys: string[]): Probs {
+  const sum = keys.reduce((a, k) => a + (p[k] ?? 0), 0) || 1
+  return Object.fromEntries(keys.map((k) => [k, (p[k] ?? 0) / sum]))
+}
 
 // the rows of the decision: the five ways, then the one thing to do
 const rows = computed(() => {
@@ -102,11 +100,8 @@ async function useModel(spec: ModelSpec) {
     }
     st.loading = true
     await load(spec)
-    // the model's preferences, measured once on a plain gray picture
-    priorPick = undefined
     priorDecision.clear()
     gray = grayPicture()
-    priorPick = (await decide(gray, { pick: pickQuestion(spec) })).answers.pick.probabilities
     current.value = spec
     picking.value = false
   } catch (e) {
@@ -148,20 +143,30 @@ async function ask() {
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     const spec = current.value
-    // 1. the one thing to do here
-    const d1 = await decide(image, { pick: pickQuestion(spec) })
-    const top = best(corrected(d1.answers.pick.probabilities!, priorPick))[0]
-    const action = ACTIONS.find((a) => (spec.ask === 'action' ? a.action : a.thing) === top)!.action
-    let shot: Shot = { thumb: image, action, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
-    last.value = shot
-    // 2. the decision: the ways to go and that one thing, as equal options; the picture is already encoded
-    const d2 = await decide(image, { decision: decisionQuestion(action) })
-    // the preference for this set of options, measured the first time the action comes up (after the photo, so
-    // that the gray picture does not push the photo out of the library's memory between the two calls)
-    if (!priorDecision.has(action)) {
-      priorDecision.set(action, (await decide(gray, { decision: decisionQuestion(action) })).answers.decision.probabilities!)
+    let shot: Shot
+    if (spec.ask === 'all') {
+      // one call: the ways to go and every action. The strongest action is the one thing to do; the decision
+      // is between it and the five ways.
+      const d = await decide(image, { decision: { instructions: ASK_DECISION, options: [...DIRECTIONS, ...ACTIONS.map((a) => a.action)] } })
+      const p = d.answers.decision.probabilities!
+      const action = best(among(p, ACTIONS.map((a) => a.action)))[0]
+      shot = { thumb: image, action, decision: among(p, [...DIRECTIONS, action]), ms: d.wallMs, encodeMs: d.encodeMs, at }
+    } else {
+      // 1. what is here; each thing divided by how readily the model names it anyway
+      const d1 = await decide(image, { pick: { instructions: ASK_THING, options: ACTIONS.map((a) => a.thing) } })
+      const thing = best(corrected(d1.answers.pick.probabilities!, THING_PRIOR))[0]
+      const action = ACTIONS.find((a) => a.thing === thing)!.action
+      shot = { thumb: image, action, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
+      last.value = shot
+      // 2. the decision: the ways to go and that one thing; the picture is already encoded
+      const d2 = await decide(image, { decision: decisionQuestion(action) })
+      // the preference for this set of options, measured after the photo so that the gray picture does not push
+      // the photo out of the library's memory between the two calls
+      if (!priorDecision.has(action)) {
+        priorDecision.set(action, (await decide(gray, { decision: decisionQuestion(action) })).answers.decision.probabilities!)
+      }
+      shot = { ...shot, decision: corrected(d2.answers.decision.probabilities!, priorDecision.get(action)), ms: shot.ms + d2.wallMs }
     }
-    shot = { ...shot, decision: corrected(d2.answers.decision.probabilities!, priorDecision.get(action)), ms: shot.ms + d2.wallMs }
     last.value = shot
     history.value = [shot, ...history.value].slice(0, 12)
   } catch (e) {

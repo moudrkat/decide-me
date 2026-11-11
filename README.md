@@ -24,12 +24,11 @@ Android only for now.
 
 ## What it does
 
-- Takes one small frame from the camera (320 px) and asks the model for the one thing worth doing
-  here, out of a short list: take a photo, sit down, go inside, talk to someone, take the next tram…
-- Then the decision: stand here, left, right, up, down, or that one thing. The model does not have
-  to pick it.
-- A model has favourite answers whatever the picture shows, so every question is also asked once
-  about a plain gray picture and the answers are divided by that.
+- Takes one small frame from the camera (320 px) and asks the model for one decision: stand here,
+  left, right, up, down, or the one thing worth doing here. The model does not have to pick the thing.
+- The thing is one of 24: take a photo, sit down, go inside, talk to someone, take the next tram,
+  lie down, look at the art, open a book, eat something… Which actions, and how to ask each model,
+  was measured on 672 photos of 56 kinds of places: [calibration](calibration/).
 - **keep asking** asks again every five seconds, for the fully automated life.
 - The history button shows where it has sent you so far.
 

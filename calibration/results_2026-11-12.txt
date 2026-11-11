@@ -1,0 +1,144 @@
+== d1_2b: 672 scenes, median ms {'direct': 615, 'things': 533, 'dirs': 293, 'onepass': 565}
+direct   raw     fits the scene type 341/648 = 53% | spread 2.4 bits | most picked: photo401 art64 sit42 window22 stairs19 eat18 read17
+direct   gray    fits the scene type 371/648 = 57% | spread 4.0 bits | most picked: photo131 art93 sit43 inside39 eat37 stairs35 water30
+direct   blank4  fits the scene type 381/648 = 59% | spread 4.0 bits | most picked: photo111 art90 inside55 sit54 eat37 stairs36 water33
+direct   scenes  fits the scene type 335/648 = 52% | spread 4.3 bits | most picked: art65 window54 stairs51 flowers51 inside45 bridge40 eat40
+things   raw     fits the scene type 336/648 = 52% | spread 3.7 bits | most picked: talk206 window75 sit61 photo41 inside39 stairs33 water26
+things   gray    fits the scene type 346/648 = 53% | spread 3.8 bits | most picked: talk198 window58 sit46 photo43 water35 flowers35 books31
+things   blank4  fits the scene type 360/648 = 56% | spread 3.9 bits | most picked: talk175 window63 sit51 photo42 water39 inside35 books30
+things   scenes  fits the scene type 382/648 = 59% | spread 4.4 bits | most picked: water50 tram49 photo45 stairs45 window44 sit41 bridge38
+onepass  raw     fits the scene type 395/648 = 61% | spread 3.4 bits | most picked: photo237 sit87 inside58 art56 stairs39 read34 eat20
+    street                     expect [talk inside photo buy ] got photo9 tram1 buy1 read1
+    downtown                   expect [photo talk inside     ] got photo5 window2 sit1 inside1 bridge1
+    alley                      expect [photo                 ] got photo8 inside2 stairs2
+    crosswalk                  expect [talk                  ] got photo8 bridge3 read1
+    residential_neighborhood   expect [                      ] got photo7 inside3 tram1 stairs1
+    plaza                      expect [photo sit talk        ] got photo9 work1 art1 stairs1
+    park                       expect [sit flowers           ] got photo8 art2 sit1 play1
+    playground                 expect [play                  ] got play6 photo3 stairs2 eat1
+    promenade                  expect [sit water talk        ] got photo7 bridge3 read1 inside1
+    bridge                     expect [bridge photo          ] got photo7 bridge4 work1
+    fountain                   expect [water photo sit       ] got photo11 art1
+    church/outdoor             expect [photo inside          ] got photo9 inside2 flowers1
+    tower                      expect [photo                 ] got photo10 bridge1 stairs1
+    castle                     expect [photo inside          ] got photo9 bridge2 sit1
+    shopfront                  expect [inside buy            ] got inside9 window1 photo1 eat1
+    market/outdoor             expect [buy talk eat          ] got photo4 read3 art3 buy2
+    restaurant_patio           expect [coffee eat sit        ] got sit9 eat2 buy1
+    bus_station/indoor         expect [tram sit              ] got photo8 inside2 read2
+    train_station/platform     expect [tram sit              ] got photo5 tram3 listen1 stairs1 read1
+    subway_station/platform    expect [tram                  ] got photo5 read2 tram2 art2 stairs1
+    parking_lot                expect [                      ] got photo9 art1 water1 read1
+    forest_path                expect [photo                 ] got photo7 stairs3 read1 bridge1
+    river                      expect [water photo           ] got photo9 water2 read1
+    beach                      expect [water photo lie       ] got photo7 water3 window1 dog1
+    courtyard                  expect [sit photo inside      ] got photo5 inside2 art2 sit1 outside1
+    doorway/outdoor            expect [inside                ] got inside9 dog1 stairs1 art1
+    building_facade            expect [photo inside          ] got photo8 inside3 read1
+    picnic_area                expect [sit eat               ] got sit6 photo4 talk1 books1
+    cemetery                   expect [read photo            ] got photo6 read5 art1
+    pier                       expect [water photo           ] got photo9 sit1 bridge1 water1
+    corridor                   expect [outside inside        ] got inside8 stairs1 art1 window1 lie1
+    staircase                  expect [stairs                ] got stairs9 art3
+    lobby                      expect [sit talk outside      ] got sit4 photo3 stairs2 art2 inside1
+    elevator_lobby             expect [outside inside        ] got inside5 sit2 photo1 stairs1 buy1
+    kitchen                    expect [tea eat hands         ] got photo4 sit4 hands2 inside1 art1
+    living_room                expect [sit lie window        ] got sit9 lie1 art1 books1
+    bedroom                    expect [lie window            ] got lie11 window1
+    bathroom                   expect [hands                 ] got hands7 window2 photo2 flowers1
+    office                     expect [work sit              ] got work4 sit4 talk1 eat1 read1
+    home_office                expect [work sit              ] got sit5 work4 art2 hands1
+    coffee_shop                expect [coffee sit buy        ] got eat4 coffee2 sit2 work1 read1
+    restaurant                 expect [eat sit coffee        ] got sit8 talk2 stairs1 read1
+    pub/indoor                 expect [sit talk coffee       ] got photo6 talk3 sit1 tea1 read1
+    supermarket                expect [buy eat               ] got buy8 eat2 read2
+    bookstore                  expect [books buy             ] got books5 talk2 inside1 buy1 sit1
+    library/indoor             expect [books sit             ] got books5 read2 photo2 sit2 inside1
+    museum/indoor              expect [art photo read        ] got art10 read1 photo1
+    art_gallery                expect [art                   ] got art12
+    church/indoor              expect [sit photo art         ] got art5 photo3 sit2 read1 stairs1
+    shopping_mall/indoor       expect [buy inside            ] got stairs4 photo3 bridge2 inside1 art1
+    waiting_room               expect [sit                   ] got sit9 art2 photo1
+    bakery/shop                expect [eat buy               ] got eat9 photo2 buy1
+    train_interior             expect [sit window            ] got sit9 window2 inside1
+    classroom                  expect [sit work              ] got photo5 sit4 window2 listen1
+    entrance_hall              expect [stairs outside photo  ] got inside3 stairs3 outside2 window2 art1
+    escalator/indoor           expect [stairs                ] got photo4 stairs4 window1 inside1 read1
+onepass  gray    fits the scene type 366/648 = 56% | spread 4.1 bits | most picked: sit69 art64 inside55 talk53 photo48 read48 bridge46
+onepass  blank4  fits the scene type 364/648 = 56% | spread 4.1 bits | most picked: art72 sit71 stairs58 inside53 talk45 read45 bridge44
+onepass  scenes  fits the scene type 338/648 = 52% | spread 4.2 bits | most picked: stairs61 inside60 art58 sit54 work45 bridge44 tram43
+dirs     raw     {'Left': 366, 'Right': 101, 'Stand here': 149, 'Down': 39, 'Up': 17}
+dirs     gray    {'Right': 362, 'Left': 178, 'Up': 56, 'Down': 76}
+dirs     scenes  {'Right': 136, 'Left': 161, 'Stand here': 144, 'Down': 130, 'Up': 101}
+== omni600: 672 scenes, median ms {'direct': 318, 'things': 265, 'dirs': 95, 'onepass': 290}
+direct   raw     fits the scene type 199/648 = 31% | spread 2.6 bits | most picked: photo329 window112 stairs74 outside51 water20 read19 inside12
+direct   gray    fits the scene type 210/648 = 32% | spread 3.6 bits | most picked: buy131 stairs125 inside81 water71 books57 listen48 art25
+direct   blank4  fits the scene type 206/648 = 32% | spread 3.5 bits | most picked: stairs145 buy119 inside86 water77 books46 art29 listen27
+direct   scenes  fits the scene type 206/648 = 32% | spread 4.2 bits | most picked: stairs95 outside64 water58 photo46 inside45 books45 flowers40
+things   raw     fits the scene type 310/648 = 48% | spread 3.5 bits | most picked: talk228 sit72 photo57 inside50 stairs44 books35 water28
+things   gray    fits the scene type 264/648 = 41% | spread 4.1 bits | most picked: flowers92 stairs75 books61 listen51 photo46 inside44 tea37
+things   blank4  fits the scene type 277/648 = 43% | spread 4.1 bits | most picked: flowers89 stairs89 books57 photo50 inside47 listen43 water40
+things   scenes  fits the scene type 315/648 = 49% | spread 4.3 bits | most picked: talk89 flowers50 books50 photo48 water44 stairs41 inside40
+    street                     expect [talk inside photo buy ] got talk7 tram4 flowers1
+    downtown                   expect [photo talk inside     ] got tram3 talk2 buy2 bridge1 coffee1
+    alley                      expect [photo                 ] got window3 inside3 outside2 talk2 stairs1
+    crosswalk                  expect [talk                  ] got talk7 read2 listen1 outside1 tram1
+    residential_neighborhood   expect [                      ] got inside3 outside2 flowers2 bridge1 tea1
+    plaza                      expect [photo sit talk        ] got talk5 flowers4 buy1 photo1 read1
+    park                       expect [sit flowers           ] got play5 talk3 outside1 water1 flowers1
+    playground                 expect [play                  ] got play10 stairs1 flowers1
+    promenade                  expect [sit water talk        ] got talk5 play2 flowers1 read1 tea1
+    bridge                     expect [bridge photo          ] got bridge8 play2 outside1 water1
+    fountain                   expect [water photo sit       ] got water8 listen1 talk1 photo1 books1
+    church/outdoor             expect [photo inside          ] got photo9 flowers1 talk1 inside1
+    tower                      expect [photo                 ] got photo7 water2 stairs1 bridge1 play1
+    castle                     expect [photo inside          ] got photo11 water1
+    shopfront                  expect [inside buy            ] got coffee3 inside2 listen1 tea1 books1
+    market/outdoor             expect [buy talk eat          ] got flowers5 talk3 listen1 buy1 play1
+    restaurant_patio           expect [coffee eat sit        ] got flowers4 sit3 water1 eat1 lie1
+    bus_station/indoor         expect [tram sit              ] got tram6 talk4 inside1 outside1
+    train_station/platform     expect [tram sit              ] got tram8 talk2 listen1 stairs1
+    subway_station/platform    expect [tram                  ] got talk3 stairs2 tram2 outside1 read1
+    parking_lot                expect [                      ] got talk3 buy2 tram2 outside1 flowers1
+    forest_path                expect [photo                 ] got stairs3 bridge2 flowers2 play2 read1
+    river                      expect [water photo           ] got water11 bridge1
+    beach                      expect [water photo lie       ] got water6 play4 talk1 dog1
+    courtyard                  expect [sit photo inside      ] got stairs3 photo3 play1 talk1 listen1
+    doorway/outdoor            expect [inside                ] got inside7 coffee2 dog1 stairs1 buy1
+    building_facade            expect [photo inside          ] got photo3 inside2 stairs2 window1 buy1
+    picnic_area                expect [sit eat               ] got play6 talk2 window1 books1 sit1
+    cemetery                   expect [read photo            ] got photo6 water2 read1 play1 listen1
+    pier                       expect [water photo           ] got water7 bridge3 stairs1 play1
+    corridor                   expect [outside inside        ] got inside9 sit1 outside1 stairs1
+    staircase                  expect [stairs                ] got stairs9 hands1 flowers1 talk1
+    lobby                      expect [sit talk outside      ] got flowers4 lie2 outside1 sit1 photo1
+    elevator_lobby             expect [outside inside        ] got outside3 inside2 hands2 coffee1 buy1
+    kitchen                    expect [tea eat hands         ] got tea6 sit3 flowers1 books1 hands1
+    living_room                expect [sit lie window        ] got sit4 flowers3 lie2 books2 tea1
+    bedroom                    expect [lie window            ] got lie10 sit1 books1
+    bathroom                   expect [hands                 ] got hands5 flowers4 lie2 tea1
+    office                     expect [work sit              ] got books5 talk2 work2 flowers1 tea1
+    home_office                expect [work sit              ] got work5 books4 tea1 flowers1 lie1
+    coffee_shop                expect [coffee sit buy        ] got flowers2 buy2 coffee2 tea1 eat1
+    restaurant                 expect [eat sit coffee        ] got sit4 coffee4 talk3 tea1
+    pub/indoor                 expect [sit talk coffee       ] got talk5 listen3 coffee2 water1 buy1
+    supermarket                expect [buy eat               ] got eat7 buy2 flowers2 tea1
+    bookstore                  expect [books buy             ] got books12
+    library/indoor             expect [books sit             ] got books12
+    museum/indoor              expect [art photo read        ] got art3 photo2 buy1 flowers1 listen1
+    art_gallery                expect [art                   ] got books3 talk2 flowers2 play1 lie1
+    church/indoor              expect [sit photo art         ] got tea3 hands2 listen2 photo2 talk1
+    shopping_mall/indoor       expect [buy inside            ] got talk5 buy3 eat1 tea1 outside1
+    waiting_room               expect [sit                   ] got lie6 sit3 tea1 flowers1 talk1
+    bakery/shop                expect [eat buy               ] got eat9 photo1 books1 sit1
+    train_interior             expect [sit window            ] got talk3 outside3 sit2 books1 listen1
+    classroom                  expect [sit work              ] got talk6 books3 sit2 window1
+    entrance_hall              expect [stairs outside photo  ] got inside5 stairs3 books1 window1 lie1
+    escalator/indoor           expect [stairs                ] got stairs7 outside3 talk2
+onepass  raw     fits the scene type 228/648 = 35% | spread 1.9 bits | most picked: photo449 stairs69 window62 water20 outside19 books12 flowers10
+onepass  gray    fits the scene type 206/648 = 32% | spread 3.6 bits | most picked: water122 stairs115 buy103 inside80 books43 flowers39 listen24
+onepass  blank4  fits the scene type 203/648 = 31% | spread 3.4 bits | most picked: water140 stairs131 buy111 inside81 books40 tea23 listen20
+onepass  scenes  fits the scene type 224/648 = 35% | spread 4.2 bits | most picked: stairs93 water55 books53 photo49 flowers44 inside42 outside40
+dirs     raw     {'Stand here': 606, 'Right': 43, 'Left': 9, 'Up': 14}
+dirs     gray    {'Right': 317, 'Up': 57, 'Stand here': 80, 'Down': 210, 'Left': 8}
+dirs     scenes  {'Stand here': 217, 'Up': 115, 'Left': 95, 'Right': 75, 'Down': 170}
