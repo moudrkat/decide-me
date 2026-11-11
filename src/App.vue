@@ -23,7 +23,7 @@ const error = ref('')
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
-const still = ref('') // the frame the answer in progress is about
+const still = ref('') // the frame the answer is about; it stays on screen with the answer, for a look or a screenshot
 const busy = ref(false)
 const auto = ref(false)
 const showHistory = ref(false)
@@ -134,6 +134,12 @@ function grayPicture(): string {
   return c.toDataURL('image/jpeg', 0.85)
 }
 
+// the main button: with an answer on screen it goes back to the live camera, otherwise it asks
+function press() {
+  if (still.value && !busy.value) still.value = ''
+  else ask()
+}
+
 async function ask() {
   if (!current.value || busy.value) return
   error.value = ''
@@ -174,7 +180,7 @@ async function ask() {
     auto.value = false
   } finally {
     busy.value = false
-    still.value = ''
+    if (auto.value || error.value) still.value = '' // walking: back to the live picture; one question: the frame stays
     if (auto.value) timer = setTimeout(ask, 5000) // you do not need to decide that often in real life
   }
 }
@@ -182,7 +188,7 @@ async function ask() {
 function toggleAuto() {
   auto.value = !auto.value
   if (timer) { clearTimeout(timer); timer = null }
-  if (auto.value && !busy.value) ask()
+  if (auto.value && !busy.value) { still.value = ''; ask() }
 }
 const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%')
 </script>
@@ -248,7 +254,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       </div>
 
       <div class="act">
-        <button class="ask" :disabled="busy" @click="ask">{{ busy ? 'looking…' : last ? 'Ask again' : 'Where should I go?' }}</button>
+        <button class="ask" :disabled="busy" @click="press">{{ busy ? 'looking…' : still ? 'Back to camera' : last ? 'Ask again' : 'Where should I go?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
       <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = the one thing to do here · nothing left the phone</p>
