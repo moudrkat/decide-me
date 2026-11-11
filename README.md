@@ -2,8 +2,10 @@
 
 No more decisions!
 
-You walk around the world, point your phone at it, and a decision model tells you where to go
-next. Left 34 %, right 28 %, stand here 12 %. You just enjoy the walk.
+You walk around the world, point your phone at it, and a decision model tells you what to do
+next. Where to go: left 29 %, stand here 28 %. Or the one thing worth doing right here: take the
+next tram, sit down, go inside, talk to someone. The model does not have to pick it, but when it
+does, that is what you do. You just enjoy the walk.
 
 The model runs inside the phone ([kneejerk](https://github.com/moudrkat/kneejerk), llama.cpp in
 the app). It looks at the picture, and nothing leaves the phone. It is a multimodal decision model:
