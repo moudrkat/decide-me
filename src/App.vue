@@ -9,14 +9,14 @@ import { decide, download, isDownloaded, isNative, load } from './native'
 const DIRECTIONS = ['Stand here', 'Left', 'Right', 'Up', 'Down']
 const ASK = 'Looking at this photo, what should the person do next?'
 const THINGS: { id: string; label: string; option: string; action: string }[] = [
+  { id: 'people', label: 'people', option: 'people', action: 'Talk to someone' },
+  { id: 'landmark', label: 'landmark', option: 'a church, tower, monument or view', action: 'Take a photo' },
   { id: 'cafe', label: 'café', option: 'a cafe or restaurant', action: 'Have a coffee' },
-  { id: 'bench', label: 'place to sit', option: 'a bench or place to sit', action: 'Sit down' },
-  { id: 'landmark', label: 'landmark', option: 'a church, tower or monument', action: 'Take a photo' },
-  { id: 'shop', label: 'shop', option: 'a shop', action: 'Look in the shop' },
-  { id: 'water', label: 'water', option: 'water: a river, fountain or sea', action: 'Go to the water' },
-  { id: 'stairs', label: 'stairs', option: 'stairs', action: 'Climb the stairs' },
-  { id: 'green', label: 'green', option: 'a park or trees', action: 'Walk into the green' },
-  { id: 'crowd', label: 'crowd', option: 'a crowd of people', action: 'Avoid the crowd' },
+  { id: 'seat', label: 'place to sit', option: 'a bench or chair', action: 'Sit down for a minute' },
+  { id: 'door', label: 'door', option: 'a door', action: 'Go through the door' },
+  { id: 'window', label: 'window', option: 'a window', action: 'Look out of the window' },
+  { id: 'sign', label: 'sign', option: 'a sign, poster or plaque', action: 'Read what it says' },
+  { id: 'stop', label: 'tram stop', option: 'a tram or bus stop', action: 'Take the next tram' },
 ]
 const NONE = 'none of these'
 const ASK_THINGS = 'Which of these things can be seen in this photo?'
