@@ -11,6 +11,10 @@ the label is per kind of place, not per photo, so a café in a photo filed under
 | fits the kind of place | 49 % | 61 % |
 | per question, 8 CPU threads | 0.27 s | 0.57 s |
 
+"Stand here" was a fifth way to go at first. Offered, d1 2B picked it for 153 of the 672 photos; without
+it the action fits the kind of place just as often (60 %) and wins the decision for 606 of 672, a way
+to go for the other 66. The table above was measured with it.
+
 Dividing by the answer to a plain gray picture helps neither: 41 % for the small model, 56 % for the big one.
 
 `run.py` asks every question about every photo through `systemone-cli` (kneejerk) and stores the raw
