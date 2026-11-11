@@ -14,6 +14,6 @@ the label is per kind of place, not per photo, so a café in a photo filed under
 Dividing by the answer to a plain gray picture helps neither: 41 % for the small model, 56 % for the big one.
 
 `run.py` asks every question about every photo through `systemone-cli` (kneejerk) and stores the raw
-probabilities; `analyse.py` scores them. `results_2026-11-12.txt` is its output for both models, with
+probabilities; `analyse.py` scores them. `results_2026-11-11.txt` is its output for both models, with
 the table per kind of place. The photos are not here: Places365 is for research use and not ours to
 redistribute. Get `val_256.tar` and the file list from the Places365 site and unpack into `places/`.
