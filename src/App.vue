@@ -236,7 +236,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
     </template>
 
     <template v-else-if="showHistory">
-      <div class="q"><div class="spark">◆</div><h1>Where it sent you</h1></div>
+      <div class="q"><div class="spark">◆</div><h1>What it told you</h1></div>
       <p v-if="!history.length" class="note">Nothing yet. Point the camera and ask.</p>
       <div class="hist">
         <div v-for="(h, i) in history" :key="i" class="h">
@@ -252,7 +252,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
 
     <template v-else>
       <div class="q">
-        <div class="spark">◆</div><h1>Where should I go?</h1>
+        <div class="spark">◆</div><h1>What should I do?</h1>
         <small v-if="last && last.at">{{ (last.ms / 1000).toFixed(1) }} s</small>
       </div>
       <div class="rows">
@@ -265,7 +265,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       </div>
 
       <div class="act">
-        <button class="ask" :disabled="busy" @click="press">{{ busy ? 'looking…' : still ? 'Back to camera' : last ? 'Ask again' : 'Where should I go?' }}</button>
+        <button class="ask" :disabled="busy" @click="press">{{ busy ? 'looking…' : still ? 'Back to camera' : last ? 'Ask again' : 'What should I do?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
       <p v-if="last && last.at" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = the one thing to do here · nothing left the phone</p>

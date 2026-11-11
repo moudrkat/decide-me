@@ -32,7 +32,7 @@ Android only for now.
 1. On the phone, open the [releases page](https://github.com/moudrkat/decide-me/releases), tap `decide-me.apk`.
 2. Allow installs from this source, install, allow the camera.
 3. Pick a model: **d1 2B** (1.3 GB with its projector) decides better, **d1-omni 600M** (670 MB) is the lighter one.
-4. Point the camera somewhere. **Where should I go?**
+4. Point the camera somewhere. **What should I do?**
 
 ## What it does
 
