@@ -1,13 +1,13 @@
 {
  "action": "Take the next tram",
  "decision": {
-  "Left": 0.3760392920694691,
-  "Right": 0.1646435694746599,
-  "Up": 0.018300730517726356,
-  "Down": 0.047626576175101173,
-  "Take the next tram": 0.3933898317630434
+  "Go left": 0.3900186912422482,
+  "Go right": 0.12726439478013157,
+  "Go forward": 0.12637760497302583,
+  "Turn back": 0.05559065088046559,
+  "Take the next tram": 0.3007486581241289
  },
- "ms": 715.738083,
+ "ms": 1288.558346,
  "image": "/docs/demo/g_busstop_04.jpg",
  "model": "d1 2B"
 }

@@ -9,14 +9,12 @@ export interface Action {
 }
 
 export const ACTIONS: Action[] = [
-  { id: 'photo', action: 'Take a photo', thing: 'a church, tower, monument or view', prior: 0.000138 },
   { id: 'sit', action: 'Sit down', thing: 'a bench or chair', prior: 0.000331 },
   { id: 'inside', action: 'Go inside', thing: 'a door or entrance', prior: 0.000103 },
   { id: 'talk', action: 'Talk to someone', thing: 'people', prior: 0.00432 },
   { id: 'window', action: 'Look out of the window', thing: 'a window', prior: 0.000116 },
   { id: 'coffee', action: 'Have a coffee', thing: 'a cafe', prior: 3.56e-5 },
   { id: 'tram', action: 'Take the next tram', thing: 'a tram, bus or train stop', prior: 1.38e-6 },
-  { id: 'read', action: 'Read what it says', thing: 'a sign, poster or plaque', prior: 1.67e-6 },
   { id: 'water', action: 'Go to the water', thing: 'water: a river, fountain or sea', prior: 5.96e-6 },
   { id: 'stairs', action: 'Climb the stairs', thing: 'stairs', prior: 7.79e-5 },
   { id: 'dog', action: 'Pet the dog', thing: 'a dog', prior: 9.74e-7 },
@@ -31,11 +29,11 @@ export const ACTIONS: Action[] = [
   { id: 'lie', action: 'Lie down', thing: 'a bed or sofa', prior: 3.37e-6 },
   { id: 'tea', action: 'Make a tea', thing: 'a kitchen', prior: 5.43e-5 },
   { id: 'work', action: 'Get back to work', thing: 'a desk or computer', prior: 4.95e-6 },
-  { id: 'art', action: 'Look at the art', thing: 'a painting or exhibit', prior: 7.46e-6 },
   { id: 'hands', action: 'Wash your hands', thing: 'a sink', prior: 2.53e-6 },
 ]
 
 // No "Stand here": offered, the models pick it most of the time, and standing is not a decision worth asking for.
-export const DIRECTIONS = ['Left', 'Right', 'Up', 'Down']
+// Worded as instructions, like the actions: bare "Left" lost to anything with a verb in it.
+export const DIRECTIONS = ['Go left', 'Go right', 'Go forward', 'Turn back']
 export const ASK_THING = 'Which of these things can be seen in this photo?'
 export const ASK_DECISION = 'Looking at this photo, what should the person do next?'

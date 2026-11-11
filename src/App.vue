@@ -7,10 +7,10 @@ import { ACTIONS, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
 // One frame, one decision: the four ways to go, or the one thing worth doing here. The model does not have to
 // pick the thing. How the thing is found depends on the model (models.ts), and so does the number of calls.
 const ICONS: Record<string, string> = {
-  Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
-  Right: 'M13 5l7 7-7 7v-5H4v-4h9z',
-  Up: 'M5 11l7-7 7 7h-5v9h-4v-9z',
-  Down: 'M5 13l7 7 7-7h-5V4h-4v9z',
+  'Go left': 'M11 5 4 12l7 7v-5h9v-4h-9z',
+  'Go right': 'M13 5l7 7-7 7v-5H4v-4h9z',
+  'Go forward': 'M5 11l7-7 7 7h-5v9h-4v-9z',
+  'Turn back': 'M5 13l7 7 7-7h-5V4h-4v9z',
 }
 const STAR = 'M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z' // the one thing to do
 

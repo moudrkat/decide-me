@@ -11,7 +11,7 @@ THINGS = {"photo": "a church, tower, monument or view", "sit": "a bench or chair
  "coffee": "a cafe", "tram": "a tram, bus or train stop", "read": "a sign, poster or plaque", "water": "water: a river, fountain or sea", "stairs": "stairs",
  "dog": "a dog", "flowers": "flowers", "bridge": "a bridge", "listen": "a musician", "books": "books", "play": "a playground",
  "outside": "an exit", "eat": "food", "buy": "a shop counter or stall", "lie": "a bed or sofa", "tea": "a kitchen", "work": "a desk or computer", "art": "a painting or exhibit", "hands": "a sink"}
-DIRS = ["Stand here", "Left", "Right", "Up", "Down"]
+DIRS = ["Go left", "Go right", "Go forward", "Turn back"]
 CATS = """street downtown alley crosswalk residential_neighborhood plaza park playground promenade bridge fountain church/outdoor tower castle shopfront market/outdoor
 restaurant_patio bus_station/indoor train_station/platform subway_station/platform parking_lot forest_path river beach courtyard doorway/outdoor building_facade picnic_area cemetery pier
 corridor staircase lobby elevator_lobby kitchen living_room bedroom bathroom office home_office coffee_shop restaurant pub/indoor supermarket bookstore library/indoor museum/indoor art_gallery
