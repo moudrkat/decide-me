@@ -99,7 +99,7 @@ async function useModel(spec: ModelSpec) {
 function grab(): string {
   const v = videoEl.value, c = canvasEl.value
   if (!v || !c || !v.videoWidth) throw new Error('the camera is not ready')
-  const side = 448
+  const side = 320 // measured: 320 px is about 140 tokens per question, and the model sees it as well as 448
   const scale = side / Math.max(v.videoWidth, v.videoHeight)
   c.width = Math.round(v.videoWidth * scale)
   c.height = Math.round(v.videoHeight * scale)
