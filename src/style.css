@@ -79,4 +79,4 @@ body { background: #0c0c14; color: var(--ink); font: 15px/1.35 var(--sans); over
 .seen .tag.none { color: var(--muted); font-weight: 500; }
 
 /* the demo view: a landscape photo shown whole above the sheet, not cropped to the phone and half hidden */
-.stage img.still.demo { height: 50%; }
+.stage img.still.demo { height: 57%; }

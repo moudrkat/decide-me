@@ -4,10 +4,9 @@ import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
 import { ACTIONS, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
 
-// One frame, one decision: the five ways to go, or the one thing worth doing here. The model does not have to
+// One frame, one decision: the four ways to go, or the one thing worth doing here. The model does not have to
 // pick the thing. How the thing is found depends on the model (models.ts), and so does the number of calls.
 const ICONS: Record<string, string> = {
-  'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
   Right: 'M13 5l7 7-7 7v-5H4v-4h9z',
   Up: 'M5 11l7-7 7 7h-5v9h-4v-9z',
@@ -53,7 +52,7 @@ function among(p: Probs, keys: string[]): Probs {
   return Object.fromEntries(keys.map((k) => [k, (p[k] ?? 0) / sum]))
 }
 
-// the rows of the decision: the five ways, then the one thing to do
+// the rows of the decision: the four ways, then the one thing to do
 const rows = computed(() => {
   const p = last.value?.decision
   const win = p ? best(p)[0] : ''
@@ -163,7 +162,7 @@ async function ask() {
     let shot: Shot
     if (spec.ask === 'all') {
       // one call: the ways to go and every action. The strongest action is the one thing to do; the decision
-      // is between it and the five ways.
+      // is between it and the four ways.
       const d = await decide(image, { decision: { instructions: ASK_DECISION, options: [...DIRECTIONS, ...ACTIONS.map((a) => a.action)] } })
       const p = d.answers.decision.probabilities!
       const action = best(among(p, ACTIONS.map((a) => a.action)))[0]

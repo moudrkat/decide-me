@@ -3,7 +3,7 @@
 No more decisions!
 
 You walk around the world, point your phone at it, and a decision model tells you what to do
-next. Where to go: left 29 %, stand here 28 %. Or the one thing worth doing right here: take the
+next. Where to go: left 38 %, right 16 %. Or the one thing worth doing right here: take the
 next tram, sit down, go inside, talk to someone. The model does not have to pick it, but when it
 does, that is what you do. You just enjoy the walk.
 
@@ -13,7 +13,7 @@ no chatting, no explaining, just probabilities.
 
 <p>
 <img src="docs/sit-down.png" width="270" alt="A bench by a path: Sit down, 79 %">
-<img src="docs/tram-stop.png" width="270" alt="A tram stop: Left 29 %, Stand here 28 %, Take the next tram 25 %">
+<img src="docs/tram-stop.png" width="270" alt="A tram stop: Take the next tram 39 %, Left 38 %">
 </p>
 
 The app's screen in a desktop browser, with the answers d1 2B gave for these two photos through the
@@ -36,8 +36,8 @@ Android only for now.
 
 ## What it does
 
-- Takes one small frame from the camera (320 px) and asks the model for one decision: stand here,
-  left, right, up, down, or the one thing worth doing here. The model does not have to pick the thing.
+- Takes one small frame from the camera (320 px) and asks the model for one decision: left,
+  right, up, down, or the one thing worth doing here. The model does not have to pick the thing.
 - The thing is one of 24: take a photo, sit down, go inside, talk to someone, take the next tram,
   lie down, look at the art, open a book, eat something… Which actions, and how to ask each model,
   was measured on 672 photos of 56 kinds of places: [calibration](calibration/).

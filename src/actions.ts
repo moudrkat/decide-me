@@ -35,6 +35,7 @@ export const ACTIONS: Action[] = [
   { id: 'hands', action: 'Wash your hands', thing: 'a sink', prior: 2.53e-6 },
 ]
 
-export const DIRECTIONS = ['Stand here', 'Left', 'Right', 'Up', 'Down']
+// No "Stand here": offered, the models pick it most of the time, and standing is not a decision worth asking for.
+export const DIRECTIONS = ['Left', 'Right', 'Up', 'Down']
 export const ASK_THING = 'Which of these things can be seen in this photo?'
 export const ASK_DECISION = 'Looking at this photo, what should the person do next?'
