@@ -60,8 +60,10 @@ export async function load(spec: ModelSpec): Promise<{ modelType: string }> {
 }
 
 export interface Answer {
-  probabilities: Record<string, number>
-  choice: string
+  type: 'choice' | 'noul'
+  probabilities?: Record<string, number>
+  choice?: string
+  noul?: number
 }
 
 export interface Decision {
@@ -71,11 +73,16 @@ export interface Decision {
   tokens: number
 }
 
-// one picture (a JPEG data URL), any number of choice questions about it
-export async function decide(image: string, questions: Record<string, { instructions: string; options: string[] }>): Promise<Decision> {
+export type Question = { instructions: string; options: string[] } | { instructions: string }
+
+// one picture (a JPEG data URL), any number of questions about it: with options a choice, without a yes/no.
+// The library encodes a picture once and keeps it, so asking again about the same frame costs only the questions.
+export async function decide(image: string, questions: Record<string, Question>): Promise<Decision> {
   const qs: Record<string, unknown> = {}
   for (const [id, q] of Object.entries(questions)) {
-    qs[id] = { type: 'choice', instructions: q.instructions, criteria: Object.fromEntries(q.options.map((o) => [o, o])) }
+    qs[id] = 'options' in q
+      ? { type: 'choice', instructions: q.instructions, criteria: Object.fromEntries(q.options.map((o) => [o, o])) }
+      : { type: 'noul', instructions: q.instructions }
   }
   const request = { state: 'A photo taken by a person walking around, from where they stand.', images: [image], questions: qs }
   const { response, wallMs } = await Kneejerk.decide({ request: JSON.stringify(request) })

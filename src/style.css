@@ -71,3 +71,9 @@ body { background: #0c0c14; color: var(--ink); font: 15px/1.35 var(--sans); over
 .hist img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; }
 .hist .w { font-weight: 700; }
 .hist .t { color: var(--muted); font-size: 12px; }
+
+.seen { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 6px; }
+.seen .lbl { color: var(--muted); font-size: 13px; }
+.seen .tag { background: var(--row); border-radius: 999px; padding: 5px 11px; font: 600 13px var(--sans); }
+.seen .tag i { font-style: normal; color: var(--accent); font-variant-numeric: tabular-nums; }
+.seen .tag.none { color: var(--muted); font-weight: 500; }

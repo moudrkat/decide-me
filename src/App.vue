@@ -3,9 +3,21 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
 
-// the two questions asked about every picture: where to go, and one thing to do here
+// Three steps about one frame. 1: where to go. 2: what is here, one yes/no per thing. 3: what to do here,
+// chosen among the actions the things it saw unlock (and "Keep walking", which is always on the table).
 const WHERE = { instructions: 'Looking at this photo, where should the person go next?', options: ['Stand here', 'Left', 'Right', 'Up', 'Down'] }
-const ALSO = { instructions: 'Looking at this photo, what should the person do here?', options: ['Take a photo', 'Sit down', 'Go inside', 'Keep walking'] }
+const THINGS: { id: string; label: string; ask: string; action: string }[] = [
+  { id: 'cafe', label: 'café', ask: 'Is there a cafe or restaurant in the photo?', action: 'Have a coffee' },
+  { id: 'bench', label: 'place to sit', ask: 'Is there a bench or place to sit in the photo?', action: 'Sit down' },
+  { id: 'landmark', label: 'landmark', ask: 'Is there a church, tower or monument in the photo?', action: 'Take a photo' },
+  { id: 'shop', label: 'shop', ask: 'Is there a shop in the photo?', action: 'Look in the shop' },
+  { id: 'water', label: 'water', ask: 'Is there water in the photo: a river, fountain or sea?', action: 'Go to the water' },
+  { id: 'stairs', label: 'stairs', ask: 'Are there stairs in the photo?', action: 'Climb the stairs' },
+  { id: 'green', label: 'green', ask: 'Is there a park or trees in the photo?', action: 'Walk into the green' },
+  { id: 'crowd', label: 'crowd', ask: 'Is there a crowd of people in the photo?', action: 'Avoid the crowd' },
+]
+const SEEN = 0.5 // a thing counts as seen from this probability
+const KEEP = 'Keep walking'
 const ICONS: Record<string, string> = {
   'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
@@ -30,7 +42,7 @@ const showHistory = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 let stream: MediaStream | null = null
 
-interface Shot { thumb: string; where: Record<string, number>; also: Record<string, number>; ms: number; encodeMs: number; at: string }
+interface Shot { thumb: string; where: Record<string, number>; things: Record<string, number> | null; also: Record<string, number> | null; ms: number; encodeMs: number; at: string }
 const last = ref<Shot | null>(null)
 const history = ref<Shot[]>([])
 
@@ -42,10 +54,16 @@ const rows = computed(() => {
 })
 const alsoRows = computed(() => {
   const p = last.value?.also
-  const win = p ? best(p)[0] : ''
-  return ALSO.options.map((o) => ({ key: o, p: p ? p[o] ?? 0 : null, win: o === win }))
+  if (!p) return []
+  const win = best(p)[0]
+  return Object.keys(p).map((o) => ({ key: o, p: p[o], win: o === win }))
 })
-const alsoBest = computed(() => (last.value ? best(last.value.also) : null))
+const alsoBest = computed(() => (last.value?.also ? best(last.value.also) : null))
+const seen = computed(() => {
+  const t = last.value?.things
+  if (!t) return null
+  return THINGS.filter((x) => (t[x.id] ?? 0) >= SEEN).map((x) => ({ label: x.label, p: t[x.id] }))
+})
 
 onMounted(async () => {
   await startCamera()
@@ -114,14 +132,23 @@ async function ask() {
   try {
     const image = grab()
     still.value = image
-    const d = await decide(image, { where: WHERE, also: ALSO })
-    const shot: Shot = {
-      thumb: image,
-      where: d.answers.where.probabilities,
-      also: d.answers.also.probabilities,
-      ms: d.wallMs,
-      encodeMs: d.encodeMs,
-      at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    // 1. where to go: shown at once
+    const d1 = await decide(image, { where: WHERE })
+    let shot: Shot = { thumb: image, where: d1.answers.where.probabilities!, things: null, also: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
+    last.value = shot
+    // 2. what is here: one yes/no per thing, the picture is already encoded
+    const d2 = await decide(image, Object.fromEntries(THINGS.map((t) => [t.id, { instructions: t.ask }])))
+    const things = Object.fromEntries(THINGS.map((t) => [t.id, d2.answers[t.id].noul ?? 0]))
+    shot = { ...shot, things, ms: shot.ms + d2.wallMs }
+    last.value = shot
+    // 3. what to do here: only the actions the seen things unlock
+    const actions = [...THINGS.filter((t) => things[t.id] >= SEEN).map((t) => t.action), KEEP]
+    if (actions.length > 1) {
+      const d3 = await decide(image, { also: { instructions: 'Looking at this photo, what should the person do here?', options: actions } })
+      shot = { ...shot, also: d3.answers.also.probabilities!, ms: shot.ms + d3.wallMs }
+    } else {
+      shot = { ...shot, also: { [KEEP]: 1 } }
     }
     last.value = shot
     history.value = [shot, ...history.value].slice(0, 12)
@@ -180,7 +207,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       <div class="hist">
         <div v-for="(h, i) in history" :key="i" class="h">
           <img :src="h.thumb" alt="">
-          <div><div class="w">{{ best(h.where)[0] }} · {{ pct(best(h.where)[1]) }}</div><div class="t">{{ best(h.also)[0] }} · {{ h.at }}</div></div>
+          <div><div class="w">{{ best(h.where)[0] }} · {{ pct(best(h.where)[1]) }}</div><div class="t">{{ h.also ? best(h.also)[0] : '' }} · {{ h.at }}</div></div>
           <div class="t">{{ (h.ms / 1000).toFixed(1) }} s</div>
         </div>
       </div>
@@ -200,7 +227,13 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         </div>
       </div>
 
-      <button v-if="alsoBest" class="also" @click="showAlso = !showAlso">and here: <b>{{ alsoBest[0] }}</b><span class="p">{{ pct(alsoBest[1]) }}</span></button>
+      <div v-if="last && seen" class="seen">
+        <span class="lbl">I see</span>
+        <span v-for="t in seen" :key="t.label" class="tag">{{ t.label }} <i>{{ pct(t.p) }}</i></span>
+        <span v-if="!seen.length" class="tag none">nothing I know</span>
+      </div>
+      <p v-else-if="last && busy" class="note">looking at what is here…</p>
+      <button v-if="alsoBest" class="also" @click="showAlso = !showAlso">so: <b>{{ alsoBest[0] }}</b><span class="p">{{ pct(alsoBest[1]) }}</span></button>
       <div v-if="showAlso && last" class="rows">
         <div v-for="r in alsoRows" :key="r.key" class="row" :class="{ win: r.win }" style="grid-template-columns: 1fr 96px 46px">
           <span class="nm">{{ r.key }}</span>
@@ -213,7 +246,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <button class="ask" :disabled="busy" @click="ask">{{ busy ? 'looking…' : last ? 'Ask again' : 'Where should I go?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
-      <p v-if="last" class="note">looked at the picture for {{ (last.encodeMs / 1000).toFixed(1) }} s, decided in {{ ((last.ms - last.encodeMs) / 1000).toFixed(1) }} s · nothing left the phone</p>
+      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s for the lot, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · nothing left the phone</p>
       <p v-else class="note">Point the camera somewhere and ask. The model decides, you walk.</p>
     </template>
 
