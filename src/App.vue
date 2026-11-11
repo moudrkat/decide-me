@@ -3,21 +3,26 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
 
-// Two steps about one frame. 1: what is here, one yes/no per thing. 2: one decision: the five ways to go,
-// plus the actions that the things it saw unlock. The model picks among all of them at once.
+// Two passes about one frame. 1: what is here, ONE question with every thing as an option plus "none of these";
+// a thing counts as seen when the model rates it above "none of these". 2: one decision: the five ways to go,
+// plus the actions that the seen things unlock. The model picks among all of them at once.
 const DIRECTIONS = ['Stand here', 'Left', 'Right', 'Up', 'Down']
 const ASK = 'Looking at this photo, what should the person do next?'
-const THINGS: { id: string; label: string; ask: string; action: string }[] = [
-  { id: 'cafe', label: 'café', ask: 'Is there a cafe or restaurant in the photo?', action: 'Have a coffee' },
-  { id: 'bench', label: 'place to sit', ask: 'Is there a bench or place to sit in the photo?', action: 'Sit down' },
-  { id: 'landmark', label: 'landmark', ask: 'Is there a church, tower or monument in the photo?', action: 'Take a photo' },
-  { id: 'shop', label: 'shop', ask: 'Is there a shop in the photo?', action: 'Look in the shop' },
-  { id: 'water', label: 'water', ask: 'Is there water in the photo: a river, fountain or sea?', action: 'Go to the water' },
-  { id: 'stairs', label: 'stairs', ask: 'Are there stairs in the photo?', action: 'Climb the stairs' },
-  { id: 'green', label: 'green', ask: 'Is there a park or trees in the photo?', action: 'Walk into the green' },
-  { id: 'crowd', label: 'crowd', ask: 'Is there a crowd of people in the photo?', action: 'Avoid the crowd' },
+const THINGS: { id: string; label: string; option: string; action: string }[] = [
+  { id: 'cafe', label: 'café', option: 'a cafe or restaurant', action: 'Have a coffee' },
+  { id: 'bench', label: 'place to sit', option: 'a bench or place to sit', action: 'Sit down' },
+  { id: 'landmark', label: 'landmark', option: 'a church, tower or monument', action: 'Take a photo' },
+  { id: 'shop', label: 'shop', option: 'a shop', action: 'Look in the shop' },
+  { id: 'water', label: 'water', option: 'water: a river, fountain or sea', action: 'Go to the water' },
+  { id: 'stairs', label: 'stairs', option: 'stairs', action: 'Climb the stairs' },
+  { id: 'green', label: 'green', option: 'a park or trees', action: 'Walk into the green' },
+  { id: 'crowd', label: 'crowd', option: 'a crowd of people', action: 'Avoid the crowd' },
 ]
-const SEEN = 0.5 // a thing counts as seen from this probability
+const NONE = 'none of these'
+const ASK_THINGS = 'Which of these things can be seen in this photo?'
+// Options of one question compete, so the strongest takes nearly all the probability. What still tells seen from
+// absent is each thing against "none of these": measured on one photo, absent things sit a hundred times below it.
+const MARGIN = 1 // seen = at least this many times as likely as "none of these"
 const ICONS: Record<string, string> = {
   'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
@@ -42,12 +47,12 @@ const showHistory = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 let stream: MediaStream | null = null
 
-interface Shot { thumb: string; things: Record<string, number>; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
+interface Shot { thumb: string; seen: string[]; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
 const last = ref<Shot | null>(null)
 const history = ref<Shot[]>([])
 
 const best = (p: Record<string, number>) => Object.entries(p).sort((a, b) => b[1] - a[1])[0]
-const seenOf = (s: Shot) => THINGS.filter((t) => (s.things[t.id] ?? 0) >= SEEN)
+const seenOf = (s: Shot) => THINGS.filter((t) => s.seen.includes(t.id))
 // the rows of the one decision: the five ways, then whatever the picture unlocked
 const rows = computed(() => {
   const p = last.value?.decision
@@ -55,7 +60,7 @@ const rows = computed(() => {
   const win = best(p)[0]
   return Object.keys(p).map((o) => ({ key: o, p: p[o] as number | null, win: o === win, extra: !DIRECTIONS.includes(o) }))
 })
-const seen = computed(() => (last.value ? seenOf(last.value).map((t) => ({ label: t.label, p: last.value!.things[t.id] })) : null))
+const seen = computed(() => (last.value ? seenOf(last.value).map((t) => t.label) : null))
 
 onMounted(async () => {
   await startCamera()
@@ -125,13 +130,16 @@ async function ask() {
     const image = grab()
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    // 1. what is here: one yes/no per thing
-    const d1 = await decide(image, Object.fromEntries(THINGS.map((t) => [t.id, { instructions: t.ask }])))
-    const things = Object.fromEntries(THINGS.map((t) => [t.id, d1.answers[t.id].noul ?? 0]))
-    let shot: Shot = { thumb: image, things, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
+    // 1. what is here: one question, every thing an option, "none of these" as the line to beat
+    const d1 = await decide(image, { things: { instructions: ASK_THINGS, options: [...THINGS.map((t) => t.option), NONE] } })
+    const pt = d1.answers.things.probabilities!
+    const floor = Math.max(pt[NONE] ?? 0, 1e-12) * MARGIN
+    // strongest first
+    const seenIds = THINGS.filter((t) => (pt[t.option] ?? 0) >= floor).sort((x, y) => pt[y.option] - pt[x.option]).map((t) => t.id)
+    let shot: Shot = { thumb: image, seen: seenIds, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
     last.value = shot
     // 2. the decision: the ways to go and the unlocked actions, as equal options; the picture is already encoded
-    const options = [...DIRECTIONS, ...THINGS.filter((t) => things[t.id] >= SEEN).map((t) => t.action)]
+    const options = [...DIRECTIONS, ...THINGS.filter((t) => seenIds.includes(t.id)).map((t) => t.action)]
     const d2 = await decide(image, { decision: { instructions: ASK, options } })
     shot = { ...shot, decision: d2.answers.decision.probabilities!, ms: shot.ms + d2.wallMs }
     last.value = shot
@@ -207,7 +215,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       </div>
       <div v-if="seen" class="seen">
         <span class="lbl">I see</span>
-        <span v-for="t in seen" :key="t.label" class="tag">{{ t.label }} <i>{{ pct(t.p) }}</i></span>
+        <span v-for="t in seen" :key="t" class="tag">{{ t }}</span>
         <span v-if="!seen.length" class="tag none">nothing I know</span>
       </div>
       <div class="rows">
