@@ -12,7 +12,7 @@ the app). It looks at the picture, and nothing leaves the phone. It is a multimo
 no chatting, no explaining, just probabilities.
 
 <p>
-<img src="docs/sit-down.png" width="270" alt="A bench by a path: Sit down, 79 %">
+<img src="docs/sit-down.png" width="270" alt="A bench by a path: Sit down, 92 %">
 <img src="docs/tram-stop.png" width="270" alt="A tram stop: Take the next tram 39 %, Left 38 %">
 </p>
 
