@@ -24,12 +24,12 @@ Android only for now.
 
 ## What it does
 
-- Takes one small frame from the camera (320 px) and asks what is here, in one question: people,
-  a landmark, a café, a place to sit, a door, a window, a sign, a tram stop. A thing counts as seen
-  when the model rates it above "none of these".
-- Then one decision: stand here, left, right, up, down, plus whatever the picture unlocked. People
-  unlock "Talk to someone", a door "Go through the door", a window "Look out of the window", a
-  tram stop "Take the next tram". The model picks among all of them at once.
+- Takes one small frame from the camera (320 px) and asks the model for the one thing worth doing
+  here, out of a short list: take a photo, sit down, go inside, talk to someone, take the next tram…
+- Then the decision: stand here, left, right, up, down, or that one thing. The model does not have
+  to pick it.
+- A model has favourite answers whatever the picture shows, so every question is also asked once
+  about a plain gray picture and the answers are divided by that.
 - **keep asking** asks again every five seconds, for the fully automated life.
 - The history button shows where it has sent you so far.
 

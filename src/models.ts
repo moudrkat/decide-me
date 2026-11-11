@@ -5,6 +5,7 @@ export interface ModelSpec {
   name: string
   files: { file: string; url: string; mb: number }[] // [model, projector]
   blurb: string
+  ask: 'action' | 'thing' // how the one thing to do is found: asked for directly, or through what is in the picture
 }
 
 const hf = (repo: string, file: string) => `https://huggingface.co/${repo}/resolve/main/${file}`
@@ -18,6 +19,7 @@ export const MODELS: ModelSpec[] = [
       { file: 'mmproj-d1-omni-600M-Q8_0.gguf', url: hf('LiquidAI/d1-omni-600M-GGUF', 'mmproj-d1-omni-600M-Q8_0.gguf'), mb: 263 },
     ],
     blurb: 'Liquid AI, the small one. 670 MB in two files.',
+    ask: 'thing',
   },
   {
     id: 'd1-2b',
@@ -27,5 +29,6 @@ export const MODELS: ModelSpec[] = [
       { file: 'mmproj-d1-2B-Q8_0.gguf', url: hf('LiquidAI/d1-2B-GGUF', 'mmproj-d1-2B-Q8_0.gguf'), mb: 203 },
     ],
     blurb: 'Liquid AI, the bigger one. 1.3 GB in two files, about 2.5 GB of RAM.',
+    ask: 'action',
   },
 ]

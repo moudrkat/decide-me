@@ -2,27 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
+import { ACTIONS, ASK_ACTION, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
 
-// Two passes about one frame. 1: what is here, ONE question with every thing as an option plus "none of these";
-// a thing counts as seen when the model rates it above "none of these". 2: one decision: the five ways to go,
-// plus the actions that the seen things unlock. The model picks among all of them at once.
-const DIRECTIONS = ['Stand here', 'Left', 'Right', 'Up', 'Down']
-const ASK = 'Looking at this photo, what should the person do next?'
-const THINGS: { id: string; label: string; option: string; action: string }[] = [
-  { id: 'people', label: 'people', option: 'people', action: 'Talk to someone' },
-  { id: 'landmark', label: 'landmark', option: 'a church, tower, monument or view', action: 'Take a photo' },
-  { id: 'cafe', label: 'café', option: 'a cafe or restaurant', action: 'Have a coffee' },
-  { id: 'seat', label: 'place to sit', option: 'a bench or chair', action: 'Sit down for a minute' },
-  { id: 'door', label: 'door', option: 'a door', action: 'Go through the door' },
-  { id: 'window', label: 'window', option: 'a window', action: 'Look out of the window' },
-  { id: 'sign', label: 'sign', option: 'a sign, poster or plaque', action: 'Read what it says' },
-  { id: 'stop', label: 'tram stop', option: 'a tram or bus stop', action: 'Take the next tram' },
-]
-const NONE = 'none of these'
-const ASK_THINGS = 'Which of these things can be seen in this photo?'
-// Options of one question compete, so the strongest takes nearly all the probability. What still tells seen from
-// absent is each thing against "none of these": measured on one photo, absent things sit a hundred times below it.
-const MARGIN = 1 // seen = at least this many times as likely as "none of these"
+// Two calls about one frame. 1: the one thing to do here, out of a fixed list. 2: the decision: the five ways to
+// go plus that one thing, as equal options. The model does not have to pick the thing.
+//
+// A model has favourite options whatever the picture shows (the small one says "Stand here" nine times out of
+// ten). So each question is also asked once about a plain gray picture, and every answer is divided by that.
 const ICONS: Record<string, string> = {
   'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
@@ -30,7 +16,7 @@ const ICONS: Record<string, string> = {
   Up: 'M5 11l7-7 7 7h-5v9h-4v-9z',
   Down: 'M5 13l7 7 7-7h-5V4h-4v9z',
 }
-const STAR = 'M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z' // an action the picture unlocked
+const STAR = 'M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z' // the one thing to do
 
 const current = ref<ModelSpec | null>(null)
 const picking = ref(false)
@@ -47,20 +33,36 @@ const showHistory = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 let stream: MediaStream | null = null
 
-interface Shot { thumb: string; seen: string[]; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
+interface Shot { thumb: string; action: string; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
 const last = ref<Shot | null>(null)
 const history = ref<Shot[]>([])
 
-const best = (p: Record<string, number>) => Object.entries(p).sort((a, b) => b[1] - a[1])[0]
-const seenOf = (s: Shot) => THINGS.filter((t) => s.seen.includes(t.id))
-// the rows of the one decision: the five ways, then whatever the picture unlocked
+type Probs = Record<string, number>
+const best = (p: Probs) => Object.entries(p).sort((a, b) => b[1] - a[1])[0]
+// an answer with the model's picture-independent preference divided out, summing to one again
+function corrected(p: Probs, prior: Probs | undefined): Probs {
+  if (!prior) return p
+  const q = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v / Math.max(prior[k] ?? 0, 1e-9)]))
+  const sum = Object.values(q).reduce((a, b) => a + b, 0) || 1
+  return Object.fromEntries(Object.entries(q).map(([k, v]) => [k, v / sum]))
+}
+let gray = '' // the plain picture the preferences are measured on
+let priorPick: Probs | undefined // the model's answer to the first question about the gray picture
+const priorDecision = new Map<string, Probs>() // and to the second, per action, measured the first time it comes up
+const pickQuestion = (spec: ModelSpec) =>
+  spec.ask === 'action'
+    ? { instructions: ASK_ACTION, options: ACTIONS.map((a) => a.action) }
+    : { instructions: ASK_THING, options: ACTIONS.map((a) => a.thing) }
+const decisionQuestion = (action: string) => ({ instructions: ASK_DECISION, options: [...DIRECTIONS, action] })
+
+// the rows of the decision: the five ways, then the one thing to do
 const rows = computed(() => {
   const p = last.value?.decision
-  if (!p) return DIRECTIONS.map((o) => ({ key: o, p: null as number | null, win: false, extra: false }))
-  const win = best(p)[0]
-  return Object.keys(p).map((o) => ({ key: o, p: p[o] as number | null, win: o === win, extra: !DIRECTIONS.includes(o) }))
+  const win = p ? best(p)[0] : ''
+  const dirs = DIRECTIONS.map((o) => ({ key: o, p: p ? p[o] : null, win: o === win, extra: false }))
+  const a = last.value?.action
+  return [...dirs, { key: a ?? 'one thing to do', p: p && a ? p[a] : null, win: !!a && a === win, extra: true }]
 })
-const seen = computed(() => (last.value ? seenOf(last.value).map((t) => t.label) : null))
 
 onMounted(async () => {
   await startCamera()
@@ -100,6 +102,11 @@ async function useModel(spec: ModelSpec) {
     }
     st.loading = true
     await load(spec)
+    // the model's preferences, measured once on a plain gray picture
+    priorPick = undefined
+    priorDecision.clear()
+    gray = grayPicture()
+    priorPick = (await decide(gray, { pick: pickQuestion(spec) })).answers.pick.probabilities
     current.value = spec
     picking.value = false
   } catch (e) {
@@ -122,6 +129,16 @@ function grab(): string {
   return c.toDataURL('image/jpeg', 0.85)
 }
 
+function grayPicture(): string {
+  const c = document.createElement('canvas')
+  c.width = 320
+  c.height = 240
+  const g = c.getContext('2d')!
+  g.fillStyle = '#808080'
+  g.fillRect(0, 0, c.width, c.height)
+  return c.toDataURL('image/jpeg', 0.85)
+}
+
 async function ask() {
   if (!current.value || busy.value) return
   error.value = ''
@@ -130,18 +147,21 @@ async function ask() {
     const image = grab()
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    // 1. what is here: one question, every thing an option, "none of these" as the line to beat
-    const d1 = await decide(image, { things: { instructions: ASK_THINGS, options: [...THINGS.map((t) => t.option), NONE] } })
-    const pt = d1.answers.things.probabilities!
-    const floor = Math.max(pt[NONE] ?? 0, 1e-12) * MARGIN
-    // strongest first
-    const seenIds = THINGS.filter((t) => (pt[t.option] ?? 0) >= floor).sort((x, y) => pt[y.option] - pt[x.option]).map((t) => t.id)
-    let shot: Shot = { thumb: image, seen: seenIds, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
+    const spec = current.value
+    // 1. the one thing to do here
+    const d1 = await decide(image, { pick: pickQuestion(spec) })
+    const top = best(corrected(d1.answers.pick.probabilities!, priorPick))[0]
+    const action = ACTIONS.find((a) => (spec.ask === 'action' ? a.action : a.thing) === top)!.action
+    let shot: Shot = { thumb: image, action, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
     last.value = shot
-    // 2. the decision: the ways to go and the unlocked actions, as equal options; the picture is already encoded
-    const options = [...DIRECTIONS, ...THINGS.filter((t) => seenIds.includes(t.id)).map((t) => t.action)]
-    const d2 = await decide(image, { decision: { instructions: ASK, options } })
-    shot = { ...shot, decision: d2.answers.decision.probabilities!, ms: shot.ms + d2.wallMs }
+    // 2. the decision: the ways to go and that one thing, as equal options; the picture is already encoded
+    const d2 = await decide(image, { decision: decisionQuestion(action) })
+    // the preference for this set of options, measured the first time the action comes up (after the photo, so
+    // that the gray picture does not push the photo out of the library's memory between the two calls)
+    if (!priorDecision.has(action)) {
+      priorDecision.set(action, (await decide(gray, { decision: decisionQuestion(action) })).answers.decision.probabilities!)
+    }
+    shot = { ...shot, decision: corrected(d2.answers.decision.probabilities!, priorDecision.get(action)), ms: shot.ms + d2.wallMs }
     last.value = shot
     history.value = [shot, ...history.value].slice(0, 12)
   } catch (e) {
@@ -201,7 +221,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
           <img :src="h.thumb" alt="">
           <div>
             <div class="w">{{ h.decision ? best(h.decision)[0] + ' · ' + pct(best(h.decision)[1]) : '…' }}</div>
-            <div class="t">{{ seenOf(h).map((t) => t.label).join(', ') || 'nothing I know' }} · {{ h.at }}</div>
+            <div class="t">{{ h.decision && best(h.decision)[0] !== h.action ? 'or: ' + h.action + ' · ' : '' }}{{ h.at }}</div>
           </div>
           <div class="t">{{ (h.ms / 1000).toFixed(1) }} s</div>
         </div>
@@ -213,13 +233,8 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <div class="spark">◆</div><h1>Where should I go?</h1>
         <small v-if="last">{{ (last.ms / 1000).toFixed(1) }} s</small>
       </div>
-      <div v-if="seen" class="seen">
-        <span class="lbl">I see</span>
-        <span v-for="t in seen" :key="t" class="tag">{{ t }}</span>
-        <span v-if="!seen.length" class="tag none">nothing I know</span>
-      </div>
       <div class="rows">
-        <div v-for="r in rows" :key="r.key" class="row" :class="{ win: r.win, idle: r.p === null }">
+        <div v-for="r in rows" :key="r.key" class="row" :class="{ win: r.win, idle: r.p === null, extra: r.extra }">
           <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path :d="r.extra ? STAR : ICONS[r.key]"/></svg></span>
           <span class="nm">{{ r.key }}</span>
           <span class="bar"><span :style="{ width: (r.p ?? 0) * 100 + '%' }"></span></span>
@@ -231,7 +246,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <button class="ask" :disabled="busy" @click="ask">{{ busy ? 'looking…' : last ? 'Ask again' : 'Where should I go?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
-      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = unlocked by what it saw · nothing left the phone</p>
+      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = the one thing to do here · nothing left the phone</p>
       <p v-else class="note">Point the camera somewhere and ask. The model decides, you walk.</p>
     </template>
 
