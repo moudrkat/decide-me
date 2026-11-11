@@ -6,8 +6,18 @@ You walk around the world, point your phone at it, and a decision model tells yo
 next. Left 34 %, right 28 %, stand here 12 %. You just enjoy the walk.
 
 The model runs inside the phone ([kneejerk](https://github.com/moudrkat/kneejerk), llama.cpp in
-the app). It looks at the picture, answers in about a second, and nothing leaves the phone. It is
-a multimodal decision model: no chatting, no explaining, just probabilities.
+the app). It looks at the picture, and nothing leaves the phone. It is a multimodal decision model:
+no chatting, no explaining, just probabilities.
+
+<p>
+<img src="docs/sit-down.png" width="270" alt="A bench by a path: Sit down, 79 %">
+<img src="docs/tram-stop.png" width="270" alt="A tram stop: Left 29 %, Stand here 28 %, Take the next tram 25 %">
+</p>
+
+The app's screen in a desktop browser, with the answers d1 2B gave for these two photos through the
+same library. Not a phone yet. Photos: Lairich Rig and M J Richardson, CC BY-SA 2.0, via Geograph and
+Wikimedia Commons ([bench](https://commons.wikimedia.org/wiki/File:Bench_beside_path_-_geograph.org.uk_-_4114984.jpg),
+[tram stop](https://commons.wikimedia.org/wiki/File:Princes_Street_tram_stop,_Edinburgh.jpg)).
 
 I said I would not build this. I have discipline. 😇
 
@@ -19,7 +29,7 @@ Android only for now.
 
 1. On the phone, open the [releases page](https://github.com/moudrkat/decide-me/releases), tap `decide-me.apk`.
 2. Allow installs from this source, install, allow the camera.
-3. Pick a model: **d1-omni 600M** (670 MB with its projector) is the one to start with.
+3. Pick a model: **d1 2B** (1.3 GB with its projector) decides better, **d1-omni 600M** (670 MB) is the lighter one.
 4. Point the camera somewhere. **Where should I go?**
 
 ## What it does

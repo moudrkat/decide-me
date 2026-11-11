@@ -62,7 +62,18 @@ const rows = computed(() => {
   return [...dirs, { key: a ?? 'one thing to do', p: p && a ? p[a] : null, win: !!a && a === win, extra: true }]
 })
 
+// Development server only (stripped from the build): ?demo=name shows a stored photo with the answer the library
+// gave for it (docs/demo/name.json), so the screen can be looked at and photographed without a phone.
+async function demo(name: string) {
+  const d = await (await fetch(`/docs/demo/${name}.json`)).json()
+  current.value = { ...MODELS[0], name: d.model }
+  still.value = d.image
+  last.value = { thumb: d.image, action: d.action, decision: d.decision, ms: d.ms, encodeMs: 0, at: '' }
+}
+
 onMounted(async () => {
+  const demoName = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
+  if (demoName) return demo(demoName)
   await startCamera()
   if (!isNative) return
   for (const m of MODELS) status[m.id].downloaded = await isDownloaded(m)
@@ -196,7 +207,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
 <template>
   <div class="stage">
     <video ref="videoEl" playsinline muted></video>
-    <img v-if="still" class="still" :src="still" alt="">
+    <img v-if="still" class="still" :class="{ demo: last && !last.at }" :src="still" alt="">
     <canvas ref="canvasEl"></canvas>
   </div>
 
@@ -242,7 +253,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
     <template v-else>
       <div class="q">
         <div class="spark">◆</div><h1>Where should I go?</h1>
-        <small v-if="last">{{ (last.ms / 1000).toFixed(1) }} s</small>
+        <small v-if="last && last.at">{{ (last.ms / 1000).toFixed(1) }} s</small>
       </div>
       <div class="rows">
         <div v-for="r in rows" :key="r.key" class="row" :class="{ win: r.win, idle: r.p === null, extra: r.extra }">
@@ -257,8 +268,8 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <button class="ask" :disabled="busy" @click="press">{{ busy ? 'looking…' : still ? 'Back to camera' : last ? 'Ask again' : 'Where should I go?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
-      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = the one thing to do here · nothing left the phone</p>
-      <p v-else class="note">Point the camera somewhere and ask. The model decides, you walk.</p>
+      <p v-if="last && last.at" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = the one thing to do here · nothing left the phone</p>
+      <p v-else-if="!last" class="note">Point the camera somewhere and ask. The model decides, you walk.</p>
     </template>
 
     <p v-if="error" class="err">{{ error }}</p>

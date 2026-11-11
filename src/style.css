@@ -77,3 +77,6 @@ body { background: #0c0c14; color: var(--ink); font: 15px/1.35 var(--sans); over
 .seen .tag { background: var(--row); border-radius: 999px; padding: 5px 11px; font: 600 13px var(--sans); }
 .seen .tag i { font-style: normal; color: var(--accent); font-variant-numeric: tabular-nums; }
 .seen .tag.none { color: var(--muted); font-weight: 500; }
+
+/* the demo view: a landscape photo shown whole above the sheet, not cropped to the phone and half hidden */
+.stage img.still.demo { height: 50%; }
