@@ -1,4 +1,4 @@
-package com.moudrkat.whereto;
+package com.moudrkat.decideme;
 
 import com.getcapacitor.BridgeActivity;
 

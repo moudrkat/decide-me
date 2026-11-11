@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.moudrkat.whereto',
-  appName: 'whereto',
+  appId: 'com.moudrkat.decideme',
+  appName: 'decide me',
   webDir: 'dist',
 }
 

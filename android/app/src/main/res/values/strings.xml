@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">whereto</string>
-    <string name="title_activity_main">whereto</string>
-    <string name="package_name">com.moudrkat.whereto</string>
-    <string name="custom_url_scheme">com.moudrkat.whereto</string>
+    <string name="app_name">decide me</string>
+    <string name="title_activity_main">decide me</string>
+    <string name="package_name">com.moudrkat.decideme</string>
+    <string name="custom_url_scheme">com.moudrkat.decideme</string>
 </resources>

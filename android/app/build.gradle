@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.moudrkat.whereto"
+    namespace = "com.moudrkat.decideme"
     ndkVersion = "27.2.12479018"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.moudrkat.whereto"
+        applicationId "com.moudrkat.decideme"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
