@@ -3,9 +3,10 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
 import { decide, download, isDownloaded, isNative, load } from './native'
 
-// Three steps about one frame. 1: where to go. 2: what is here, one yes/no per thing. 3: what to do here,
-// chosen among the actions the things it saw unlock (and "Keep walking", which is always on the table).
-const WHERE = { instructions: 'Looking at this photo, where should the person go next?', options: ['Stand here', 'Left', 'Right', 'Up', 'Down'] }
+// Two steps about one frame. 1: what is here, one yes/no per thing. 2: one decision: the five ways to go,
+// plus the actions that the things it saw unlock. The model picks among all of them at once.
+const DIRECTIONS = ['Stand here', 'Left', 'Right', 'Up', 'Down']
+const ASK = 'Looking at this photo, what should the person do next?'
 const THINGS: { id: string; label: string; ask: string; action: string }[] = [
   { id: 'cafe', label: 'café', ask: 'Is there a cafe or restaurant in the photo?', action: 'Have a coffee' },
   { id: 'bench', label: 'place to sit', ask: 'Is there a bench or place to sit in the photo?', action: 'Sit down' },
@@ -17,7 +18,6 @@ const THINGS: { id: string; label: string; ask: string; action: string }[] = [
   { id: 'crowd', label: 'crowd', ask: 'Is there a crowd of people in the photo?', action: 'Avoid the crowd' },
 ]
 const SEEN = 0.5 // a thing counts as seen from this probability
-const KEEP = 'Keep walking'
 const ICONS: Record<string, string> = {
   'Stand here': 'M12 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 6h6v6h-1.5v4h-3v-4H9z',
   Left: 'M11 5 4 12l7 7v-5h9v-4h-9z',
@@ -25,6 +25,7 @@ const ICONS: Record<string, string> = {
   Up: 'M5 11l7-7 7 7h-5v9h-4v-9z',
   Down: 'M5 13l7 7 7-7h-5V4h-4v9z',
 }
+const STAR = 'M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z' // an action the picture unlocked
 
 const current = ref<ModelSpec | null>(null)
 const picking = ref(false)
@@ -34,36 +35,27 @@ const error = ref('')
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
-const still = ref('') // the frame the last answer is about
+const still = ref('') // the frame the answer in progress is about
 const busy = ref(false)
 const auto = ref(false)
-const showAlso = ref(false)
 const showHistory = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 let stream: MediaStream | null = null
 
-interface Shot { thumb: string; where: Record<string, number>; things: Record<string, number> | null; also: Record<string, number> | null; ms: number; encodeMs: number; at: string }
+interface Shot { thumb: string; things: Record<string, number>; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
 const last = ref<Shot | null>(null)
 const history = ref<Shot[]>([])
 
 const best = (p: Record<string, number>) => Object.entries(p).sort((a, b) => b[1] - a[1])[0]
+const seenOf = (s: Shot) => THINGS.filter((t) => (s.things[t.id] ?? 0) >= SEEN)
+// the rows of the one decision: the five ways, then whatever the picture unlocked
 const rows = computed(() => {
-  const p = last.value?.where
-  const win = p ? best(p)[0] : ''
-  return WHERE.options.map((o) => ({ key: o, p: p ? p[o] ?? 0 : null, win: o === win }))
-})
-const alsoRows = computed(() => {
-  const p = last.value?.also
-  if (!p) return []
+  const p = last.value?.decision
+  if (!p) return DIRECTIONS.map((o) => ({ key: o, p: null as number | null, win: false, extra: false }))
   const win = best(p)[0]
-  return Object.keys(p).map((o) => ({ key: o, p: p[o], win: o === win }))
+  return Object.keys(p).map((o) => ({ key: o, p: p[o] as number | null, win: o === win, extra: !DIRECTIONS.includes(o) }))
 })
-const alsoBest = computed(() => (last.value?.also ? best(last.value.also) : null))
-const seen = computed(() => {
-  const t = last.value?.things
-  if (!t) return null
-  return THINGS.filter((x) => (t[x.id] ?? 0) >= SEEN).map((x) => ({ label: x.label, p: t[x.id] }))
-})
+const seen = computed(() => (last.value ? seenOf(last.value).map((t) => ({ label: t.label, p: last.value!.things[t.id] })) : null))
 
 onMounted(async () => {
   await startCamera()
@@ -133,23 +125,15 @@ async function ask() {
     const image = grab()
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    // 1. where to go: shown at once
-    const d1 = await decide(image, { where: WHERE })
-    let shot: Shot = { thumb: image, where: d1.answers.where.probabilities!, things: null, also: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
+    // 1. what is here: one yes/no per thing
+    const d1 = await decide(image, Object.fromEntries(THINGS.map((t) => [t.id, { instructions: t.ask }])))
+    const things = Object.fromEntries(THINGS.map((t) => [t.id, d1.answers[t.id].noul ?? 0]))
+    let shot: Shot = { thumb: image, things, decision: null, ms: d1.wallMs, encodeMs: d1.encodeMs, at }
     last.value = shot
-    // 2. what is here: one yes/no per thing, the picture is already encoded
-    const d2 = await decide(image, Object.fromEntries(THINGS.map((t) => [t.id, { instructions: t.ask }])))
-    const things = Object.fromEntries(THINGS.map((t) => [t.id, d2.answers[t.id].noul ?? 0]))
-    shot = { ...shot, things, ms: shot.ms + d2.wallMs }
-    last.value = shot
-    // 3. what to do here: only the actions the seen things unlock
-    const actions = [...THINGS.filter((t) => things[t.id] >= SEEN).map((t) => t.action), KEEP]
-    if (actions.length > 1) {
-      const d3 = await decide(image, { also: { instructions: 'Looking at this photo, what should the person do here?', options: actions } })
-      shot = { ...shot, also: d3.answers.also.probabilities!, ms: shot.ms + d3.wallMs }
-    } else {
-      shot = { ...shot, also: { [KEEP]: 1 } }
-    }
+    // 2. the decision: the ways to go and the unlocked actions, as equal options; the picture is already encoded
+    const options = [...DIRECTIONS, ...THINGS.filter((t) => things[t.id] >= SEEN).map((t) => t.action)]
+    const d2 = await decide(image, { decision: { instructions: ASK, options } })
+    shot = { ...shot, decision: d2.answers.decision.probabilities!, ms: shot.ms + d2.wallMs }
     last.value = shot
     history.value = [shot, ...history.value].slice(0, 12)
   } catch (e) {
@@ -207,7 +191,10 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       <div class="hist">
         <div v-for="(h, i) in history" :key="i" class="h">
           <img :src="h.thumb" alt="">
-          <div><div class="w">{{ best(h.where)[0] }} · {{ pct(best(h.where)[1]) }}</div><div class="t">{{ h.also ? best(h.also)[0] : '' }} · {{ h.at }}</div></div>
+          <div>
+            <div class="w">{{ h.decision ? best(h.decision)[0] + ' · ' + pct(best(h.decision)[1]) : '…' }}</div>
+            <div class="t">{{ seenOf(h).map((t) => t.label).join(', ') || 'nothing I know' }} · {{ h.at }}</div>
+          </div>
           <div class="t">{{ (h.ms / 1000).toFixed(1) }} s</div>
         </div>
       </div>
@@ -218,24 +205,14 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <div class="spark">◆</div><h1>Where should I go?</h1>
         <small v-if="last">{{ (last.ms / 1000).toFixed(1) }} s</small>
       </div>
-      <div class="rows">
-        <div v-for="r in rows" :key="r.key" class="row" :class="{ win: r.win, idle: r.p === null }">
-          <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path :d="ICONS[r.key]"/></svg></span>
-          <span class="nm">{{ r.key }}</span>
-          <span class="bar"><span :style="{ width: (r.p ?? 0) * 100 + '%' }"></span></span>
-          <span class="p">{{ pct(r.p) }}</span>
-        </div>
-      </div>
-
-      <div v-if="last && seen" class="seen">
+      <div v-if="seen" class="seen">
         <span class="lbl">I see</span>
         <span v-for="t in seen" :key="t.label" class="tag">{{ t.label }} <i>{{ pct(t.p) }}</i></span>
         <span v-if="!seen.length" class="tag none">nothing I know</span>
       </div>
-      <p v-else-if="last && busy" class="note">looking at what is here…</p>
-      <button v-if="alsoBest" class="also" @click="showAlso = !showAlso">so: <b>{{ alsoBest[0] }}</b><span class="p">{{ pct(alsoBest[1]) }}</span></button>
-      <div v-if="showAlso && last" class="rows">
-        <div v-for="r in alsoRows" :key="r.key" class="row" :class="{ win: r.win }" style="grid-template-columns: 1fr 96px 46px">
+      <div class="rows">
+        <div v-for="r in rows" :key="r.key" class="row" :class="{ win: r.win, idle: r.p === null }">
+          <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path :d="r.extra ? STAR : ICONS[r.key]"/></svg></span>
           <span class="nm">{{ r.key }}</span>
           <span class="bar"><span :style="{ width: (r.p ?? 0) * 100 + '%' }"></span></span>
           <span class="p">{{ pct(r.p) }}</span>
@@ -246,7 +223,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         <button class="ask" :disabled="busy" @click="ask">{{ busy ? 'looking…' : last ? 'Ask again' : 'Where should I go?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
       </div>
-      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s for the lot, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · nothing left the phone</p>
+      <p v-if="last" class="note">{{ (last.ms / 1000).toFixed(1) }} s, {{ (last.encodeMs / 1000).toFixed(1) }} s of it looking at the picture · ★ = unlocked by what it saw · nothing left the phone</p>
       <p v-else class="note">Point the camera somewhere and ask. The model decides, you walk.</p>
     </template>
 

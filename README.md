@@ -24,10 +24,10 @@ Android only for now.
 
 ## What it does
 
-- Takes one small frame from the camera (320 px) and asks the model three things. Where to go:
-  stand here, left, right, up, down. What is here: a café, a place to sit, a landmark, a shop,
-  water, stairs, green, a crowd, one yes/no each. And what to do about it: the things it saw unlock
-  the actions (a café unlocks "Have a coffee"), and it picks one. "Keep walking" is always on the table.
+- Takes one small frame from the camera (320 px) and first asks what is here: a café, a place
+  to sit, a landmark, a shop, water, stairs, green, a crowd, one yes/no each.
+- Then one decision: stand here, left, right, up, down, plus whatever the picture unlocked (a
+  landmark unlocks "Take a photo", a café "Have a coffee"). The model picks among all of them at once.
 - **keep asking** asks again every five seconds, for the fully automated life.
 - The history button shows where it has sent you so far.
 
