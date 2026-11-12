@@ -25,17 +25,19 @@ export async function isDownloaded(spec: ModelSpec): Promise<boolean> {
   return true
 }
 
-// both files, progress as one fraction of the total size
+// both files, progress as one fraction of the total size. The plugin's download continues an interrupted file
+// where it stopped (a 1 GB model over a pub's wifi does get interrupted); calling this again picks it up.
 export async function download(spec: ModelSpec, onProgress: (fraction: number) => void): Promise<void> {
   const total = spec.files.reduce((a, f) => a + f.mb, 0)
   let done = 0
   for (const f of spec.files) {
     if (!(await has(f.file, f.mb))) {
-      const listener = await Filesystem.addListener('progress', (p) => {
-        if (p.contentLength > 0) onProgress((done + (f.mb * p.bytes) / p.contentLength) / total)
+      const path = await pathOf(f.file)
+      const listener = await Kneejerk.addListener('downloadProgress', (p) => {
+        if (p.path === path && p.total > 0) onProgress((done + (f.mb * p.bytes) / p.total) / total)
       })
       try {
-        await Filesystem.downloadFile({ url: f.url, path: f.file, directory: Directory.Data, progress: true })
+        await Kneejerk.download({ url: f.url, path })
       } finally {
         await listener.remove()
       }

@@ -80,10 +80,26 @@ onMounted(async () => {
   if (first) await useModel(first)
   else picking.value = true
 })
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy.value) ensureCamera() })
+
 onBeforeUnmount(() => {
   if (timer) clearTimeout(timer)
   stream?.getTracks().forEach((t) => t.stop())
 })
+
+// The live picture can die while the model works (a slower phone drops the camera stream under load), and the
+// preview then stays frozen on its last frame. Before every look, and on coming back to the app: is the track
+// still live and the video playing? If not, start the camera again.
+async function ensureCamera() {
+  const track = stream?.getVideoTracks()[0]
+  if (!track || track.readyState !== 'live' || track.muted) {
+    stream?.getTracks().forEach((t) => t.stop())
+    stream = null
+    await startCamera()
+  } else if (videoEl.value?.paused) {
+    await videoEl.value.play().catch(() => startCamera())
+  }
+}
 
 async function startCamera() {
   try {
@@ -146,8 +162,10 @@ function grayPicture(): string {
 
 // the main button: with an answer on screen it goes back to the live camera, otherwise it asks
 function press() {
-  if (still.value && !busy.value) still.value = ''
-  else ask()
+  if (still.value && !busy.value) {
+    still.value = ''
+    ensureCamera()
+  } else ask()
 }
 
 async function ask() {
@@ -155,6 +173,7 @@ async function ask() {
   error.value = ''
   busy.value = true
   try {
+    await ensureCamera()
     const image = grab()
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })

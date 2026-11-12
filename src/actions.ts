@@ -13,7 +13,7 @@ export const ACTIONS: Action[] = [
   { id: 'inside', action: 'Go inside', thing: 'a door or entrance', prior: 0.000103 },
   { id: 'talk', action: 'Talk to someone', thing: 'people', prior: 0.00432 },
   { id: 'window', action: 'Look out of the window', thing: 'a window', prior: 0.000116 },
-  { id: 'coffee', action: 'Have a coffee', thing: 'a cafe', prior: 3.56e-5 },
+  { id: 'coffee', action: 'Have a drink', thing: 'a cafe, bar or pub', prior: 3.56e-5 }, // was coffee only: a beer in a pub got "Have a coffee"
   { id: 'tram', action: 'Take the next tram', thing: 'a tram, bus or train stop', prior: 1.38e-6 },
   { id: 'water', action: 'Go to the water', thing: 'water: a river, fountain or sea', prior: 5.96e-6 },
   { id: 'stairs', action: 'Climb the stairs', thing: 'stairs', prior: 7.79e-5 },
