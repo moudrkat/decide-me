@@ -3,6 +3,8 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Kneejerk } from 'capacitor-kneejerk'
 import type { ModelSpec } from './models'
+import { Vision } from './vision'
+import { parseProposal, decisionRequest, validatedProbabilities } from './pipeline'
 
 export const isNative = Capacitor.isNativePlatform()
 
@@ -11,9 +13,18 @@ async function pathOf(file: string): Promise<string> {
   return uri.replace(/^file:\/\//, '')
 }
 
-async function has(file: string, mb: number): Promise<boolean> {
+const verified = new Set<string>()
+async function has(file: string, mb: number, sha256?: string): Promise<boolean> {
   try {
     const st = await Filesystem.stat({ path: file, directory: Directory.Data })
+    if (sha256) {
+      if (st.size !== Math.round(mb * 1e6)) return false
+      if (!verified.has(sha256)) {
+        if (!(await Vision.verify({ path: await pathOf(file), sha256 })).valid) return false
+        verified.add(sha256)
+      }
+      return true
+    }
     return (st.size ?? 0) > mb * 1e6 * 0.99
   } catch {
     return false
@@ -21,7 +32,7 @@ async function has(file: string, mb: number): Promise<boolean> {
 }
 
 export async function isDownloaded(spec: ModelSpec): Promise<boolean> {
-  for (const f of spec.files) if (!(await has(f.file, f.mb))) return false
+  for (const f of spec.files) if (!(await has(f.file, f.mb, f.sha256))) return false
   return true
 }
 
@@ -31,7 +42,13 @@ export async function download(spec: ModelSpec, onProgress: (fraction: number) =
   const total = spec.files.reduce((a, f) => a + f.mb, 0)
   let done = 0
   for (const f of spec.files) {
-    if (!(await has(f.file, f.mb))) {
+    if (!(await has(f.file, f.mb, f.sha256))) {
+      // The resumable downloader trusts an existing final file. Remove a rejected final
+      // file, but retain .part so interrupted downloads can continue.
+      let finalExists = false
+      try { await Filesystem.stat({ path: f.file, directory: Directory.Data }); finalExists = true } catch { /* absent */ }
+      if (finalExists) await Filesystem.deleteFile({ path: f.file, directory: Directory.Data })
+      if (f.sha256) verified.delete(f.sha256)
       const path = await pathOf(f.file)
       const listener = await Kneejerk.addListener('downloadProgress', (p) => {
         if (p.path === path && p.total > 0) onProgress((done + (f.mb * p.bytes) / p.total) / total)
@@ -42,12 +59,22 @@ export async function download(spec: ModelSpec, onProgress: (fraction: number) =
         await listener.remove()
       }
     }
+    if (!(await has(f.file, f.mb, f.sha256))) throw new Error(`Model verification failed: ${f.file}. Retry the download.`)
     done += f.mb
     onProgress(done / total)
   }
 }
 
 export async function load(spec: ModelSpec): Promise<{ modelType: string }> {
+  await unload()
+  if (spec.ask === 'vision-laya') {
+    try {
+      await Vision.load({ path: await pathOf(spec.files[0].file), projector: await pathOf(spec.files[1].file) })
+      const result = await Kneejerk.load({ path: await pathOf(spec.files[2].file), nCtx: 1024, threads: 4, repack: false })
+      if (result.modelType !== 'laya') throw new Error('Expected a Laya decision model')
+      return result
+    } catch (e) { await unload(); throw e }
+  }
   const path = await pathOf(spec.files[0].file)
   const mmproj = await pathOf(spec.files[1].file)
   let repack = true
@@ -91,4 +118,22 @@ export async function decide(image: string, questions: Record<string, Question>)
   const r = JSON.parse(response)
   if (r.error) throw new Error(r.error.message)
   return { answers: r.answers, wallMs, encodeMs: r.usage?.image_encode_ms ?? 0, tokens: r.usage?.input_tokens ?? 0 }
+}
+
+export async function unload(): Promise<void> {
+  await Promise.all([Vision.unload(), Kneejerk.unload()])
+}
+
+export async function describeAndDecide(image: string) {
+  const start = performance.now()
+  const observation = await Vision.describe({ image })
+  const scene = parseProposal(observation.json)
+  const result = await Kneejerk.decide({ request: JSON.stringify(decisionRequest(scene)) })
+  const response = JSON.parse(result.response)
+  if (response.error) throw new Error(response.error.message)
+  return {
+    scene,
+    decision: validatedProbabilities(response.answers?.decision?.probabilities, scene.action),
+    visionMs: observation.wallMs, decisionMs: result.wallMs, totalMs: performance.now() - start,
+  }
 }

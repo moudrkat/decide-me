@@ -2,18 +2,20 @@
   "name": "decide-me",
   "private": true,
   "version": "0.0.0",
-  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:bindings": "npm run build --prefix vendor/kneejerk/bindings/capacitor",
+    "prebuild": "npm run build:bindings",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/filesystem": "^8.1.5",
-    "capacitor-kneejerk": "file:../kneejerk/bindings/capacitor",
+    "capacitor-kneejerk": "file:vendor/kneejerk/bindings/capacitor",
     "vue": "^3.5.44"
   },
   "devDependencies": {
@@ -24,5 +26,6 @@
     "typescript": "~6.0.3",
     "vite": "^8.3.6",
     "vue-tsc": "^3.3.14"
-  }
+  },
+  "license": "MIT"
 }
