@@ -17,7 +17,7 @@ no chatting, no explaining, just probabilities.
 </p>
 
 The app's screen in a desktop browser, with the answers d1 2B gave for these two photos through the
-same library. Not a phone yet. Photos: Lairich Rig and M J Richardson, CC BY-SA 2.0, via Geograph and
+same library. On a Pixel 8a both models run and a decision takes a few seconds. Photos: Lairich Rig and M J Richardson, CC BY-SA 2.0, via Geograph and
 Wikimedia Commons ([bench](https://commons.wikimedia.org/wiki/File:Bench_beside_path_-_geograph.org.uk_-_4114984.jpg),
 [tram stop](https://commons.wikimedia.org/wiki/File:Princes_Street_tram_stop,_Edinburgh.jpg)).
 
