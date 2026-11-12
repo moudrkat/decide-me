@@ -1,0 +1,3 @@
+[submodule "vendor/kneejerk"]
+	path = vendor/kneejerk
+	url = https://github.com/moudrkat/kneejerk.git

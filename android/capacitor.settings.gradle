@@ -6,4 +6,4 @@ include ':capacitor-filesystem'
 project(':capacitor-filesystem').projectDir = new File('../node_modules/@capacitor/filesystem/android')
 
 include ':capacitor-kneejerk'
-project(':capacitor-kneejerk').projectDir = new File('../../kneejerk/bindings/capacitor/android')
+project(':capacitor-kneejerk').projectDir = new File('../vendor/kneejerk/bindings/capacitor/android')

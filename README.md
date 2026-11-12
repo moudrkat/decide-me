@@ -54,8 +54,7 @@ decision model first.
 Node 22, Android SDK with NDK 27 and cmake, JDK 21.
 
 ```bash
-git clone --recurse-submodules https://github.com/moudrkat/kneejerk
-git clone https://github.com/moudrkat/decide-me
+git clone --recurse-submodules https://github.com/moudrkat/decide-me
 cd decide-me && npm install && npm run build && npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
@@ -63,3 +62,27 @@ cd android && ./gradlew assembleDebug
 ## PRs welcome
 
 Your own questions and actions, numbers from your phone, iOS.
+
+## Experimental scene descriptions and Laya
+
+An optional **SmolVLM → Laya** mode generates a short image description and one scene-specific
+activity, then ranks it against the four walking directions. It can propose activities outside
+the fixed list. This is considerably slower than direct d1 decisions because it generates text;
+the small vision model can also produce awkward actions or poor uncertainty statements.
+The existing d1 modes remain first in the picker and are unchanged as the default preference.
+
+The new mode downloads about 995 MB of pinned, SHA-256-verified weights and works offline
+after download. Expand **What it saw** to inspect observations, evidence and separate vision
+and decision timings. Treat percentages as model preferences, not verified correctness.
+
+This branch pins kneejerk and its recursive llama.cpp source in `vendor/`, which is also
+required by the native vision bridge. Initialize dependencies with
+`git submodule update --init --recursive`. `npm run build` builds the plugin bindings
+automatically. Run `npm test` for pipeline regression tests. To assemble an APK use the
+existing build instructions after `npm run build` and `npx cap sync android`.
+
+Two real-photo desktop smoke tests validated generated scene JSON and five-choice Laya
+responses. Android native compilation and APK signature/package checks passed in the fork;
+this upstream-ready variant has not been rebuilt as an APK. No comparative phone benchmark
+or calibrated-quality improvement is claimed. The host JNI fixture can be run with
+`JAVA_HOME=... MODEL_DIR=... tools/vision-smoke.sh image.jpg`.

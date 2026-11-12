@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { MODELS, type ModelSpec } from './models'
-import { decide, download, isDownloaded, isNative, load } from './native'
+import { decide, download, isDownloaded, isNative, load, unload, describeAndDecide } from './native'
 import { ACTIONS, ASK_DECISION, ASK_THING, DIRECTIONS } from './actions'
 
 // One frame, one decision: the four ways to go, or the one thing worth doing here. The model does not have to
@@ -29,7 +29,7 @@ const showHistory = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 let stream: MediaStream | null = null
 
-interface Shot { thumb: string; action: string; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
+interface Shot { scene?: { description: string; uncertainty: string; evidence: string }; model?: string; revisions?: string[]; visionMs?: number; decisionMs?: number; thumb: string; action: string; decision: Record<string, number> | null; ms: number; encodeMs: number; at: string }
 const last = ref<Shot | null>(null)
 const history = ref<Shot[]>([])
 
@@ -70,7 +70,16 @@ async function demo(name: string) {
   last.value = { thumb: d.image, action: d.action, decision: d.decision, ms: d.ms, encodeMs: 0, at: '' }
 }
 
+function visibilityChanged() {
+  if (document.hidden) {
+    auto.value = false
+    if (timer) { clearTimeout(timer); timer = null }
+  } else if (!busy.value) {
+    void ensureCamera()
+  }
+}
 onMounted(async () => {
+  document.addEventListener('visibilitychange', visibilityChanged)
   const demoName = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
   if (demoName) return demo(demoName)
   await startCamera()
@@ -80,25 +89,32 @@ onMounted(async () => {
   if (first) await useModel(first)
   else picking.value = true
 })
-document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy.value) ensureCamera() })
 
 onBeforeUnmount(() => {
   if (timer) clearTimeout(timer)
+  document.removeEventListener('visibilitychange', visibilityChanged)
+  if (isNative) void unload().catch(() => { /* native cleanup on teardown */ })
   stream?.getTracks().forEach((t) => t.stop())
 })
 
 // The live picture can die while the model works (a slower phone drops the camera stream under load), and the
 // preview then stays frozen on its last frame. Before every look, and on coming back to the app: is the track
 // still live and the video playing? If not, start the camera again.
+let cameraRecovery: Promise<void> | null = null
 async function ensureCamera() {
-  const track = stream?.getVideoTracks()[0]
-  if (!track || track.readyState !== 'live' || track.muted) {
-    stream?.getTracks().forEach((t) => t.stop())
+  if (document.hidden) return
+  if (cameraRecovery) return cameraRecovery
+  cameraRecovery = (async () => {
+    const track = stream?.getVideoTracks()[0]
+    if (track?.readyState === 'live' && !track.muted) {
+      if (!videoEl.value?.paused) return
+      try { await videoEl.value.play(); return } catch { /* reopen below */ }
+    }
+    stream?.getTracks().forEach(t => t.stop())
     stream = null
     await startCamera()
-  } else if (videoEl.value?.paused) {
-    await videoEl.value.play().catch(() => startCamera())
-  }
+  })()
+  try { await cameraRecovery } finally { cameraRecovery = null }
 }
 
 async function startCamera() {
@@ -115,6 +131,12 @@ async function startCamera() {
 
 async function useModel(spec: ModelSpec) {
   error.value = ''
+  if (busy.value) return
+  busy.value = true
+  auto.value = false
+  if (timer) { clearTimeout(timer); timer = null }
+  current.value = null
+  last.value = null
   const st = status[spec.id]
   try {
     if (!st.downloaded) {
@@ -134,6 +156,7 @@ async function useModel(spec: ModelSpec) {
     error.value = String((e as Error).message ?? e)
     st.progress = null
   } finally {
+    busy.value = false
     st.loading = false
   }
 }
@@ -142,7 +165,7 @@ async function useModel(spec: ModelSpec) {
 function grab(): string {
   const v = videoEl.value, c = canvasEl.value
   if (!v || !c || !v.videoWidth) throw new Error('the camera is not ready')
-  const side = 320 // measured: 320 px is about 140 tokens per question, and the model sees it as well as 448
+  const side = current.value?.ask === 'vision-laya' ? 640 : 320 // measured: 320 px is about 140 tokens per question, and the model sees it as well as 448
   const scale = side / Math.max(v.videoWidth, v.videoHeight)
   c.width = Math.round(v.videoWidth * scale)
   c.height = Math.round(v.videoHeight * scale)
@@ -169,17 +192,24 @@ function press() {
 }
 
 async function ask() {
-  if (!current.value || busy.value) return
+  if (!current.value || busy.value || document.hidden) return
   error.value = ''
   busy.value = true
   try {
     await ensureCamera()
+    if (document.hidden) return
     const image = grab()
+    last.value = null
     still.value = image
     const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     const spec = current.value
     let shot: Shot
-    if (spec.ask === 'all') {
+    if (spec.ask === 'vision-laya') {
+      const result = await describeAndDecide(image)
+      shot = { thumb: image, action: result.scene.action, scene: result.scene, decision: result.decision,
+        ms: result.totalMs, encodeMs: result.visionMs, visionMs: result.visionMs, decisionMs: result.decisionMs, at,
+        model: spec.name, revisions: spec.files.map(f => f.url) }
+    } else if (spec.ask === 'all') {
       // one call: the ways to go and every action. The strongest action is the one thing to do; the decision
       // is between it and the four ways.
       const d = await decide(image, { decision: { instructions: ASK_DECISION, options: [...DIRECTIONS, ...ACTIONS.map((a) => a.action)] } })
@@ -243,7 +273,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
       <div class="q"><div class="spark">◆</div><h1>Pick a model</h1></div>
       <p v-if="!isNative" class="note">This is the web build. The model runs inside the Android app.</p>
       <div class="models">
-        <button v-for="m in MODELS" :key="m.id" class="model" :disabled="status[m.id].loading || status[m.id].progress !== null" @click="useModel(m)">
+        <button v-for="m in MODELS" :key="m.id" class="model" :disabled="busy || status[m.id].loading || status[m.id].progress !== null" @click="useModel(m)">
           <b>{{ m.name }}</b>
           <span class="st">{{ status[m.id].loading ? 'loading' : status[m.id].progress !== null ? Math.round(status[m.id].progress! * 100) + ' %' : status[m.id].downloaded ? (current?.id === m.id ? 'loaded' : 'ready') : 'download' }}</span>
           <span class="sub">{{ m.blurb }}</span>
@@ -261,6 +291,7 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
           <img :src="h.thumb" alt="">
           <div>
             <div class="w">{{ h.decision ? best(h.decision)[0] + ' · ' + pct(best(h.decision)[1]) : '…' }}</div>
+            <p v-if="h.scene" class="note">{{ h.scene.description }}</p>
             <div class="t">{{ h.decision && best(h.decision)[0] !== h.action ? 'or: ' + h.action + ' · ' : '' }}{{ h.at }}</div>
           </div>
           <div class="t">{{ (h.ms / 1000).toFixed(1) }} s</div>
@@ -282,6 +313,14 @@ const pct = (p: number | null) => (p === null ? '–' : Math.round(p * 100) + '%
         </div>
       </div>
 
+      <details v-if="last?.scene" class="note">
+        <summary>What it saw · {{ last.model }}</summary>
+        <p>{{ last.scene.description }}</p>
+        <p v-if="last.scene.uncertainty">Uncertain: {{ last.scene.uncertainty }}</p>
+        <p>Activity evidence: {{ last.scene.evidence }}</p>
+        <p>Vision {{ ((last.visionMs ?? 0) / 1000).toFixed(1) }} s · decision {{ ((last.decisionMs ?? 0) / 1000).toFixed(1) }} s</p>
+        <p>Percentages express model preference, not verified correctness.</p>
+      </details>
       <div class="act">
         <button class="ask" :disabled="busy" @click="press">{{ busy ? 'looking…' : still ? 'Back to camera' : last ? 'Ask again' : 'What should I do?' }}</button>
         <button class="auto" :class="{ on: auto }" @click="toggleAuto">{{ auto ? 'stop' : 'keep asking' }}</button>
